@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tracon Billing"
+  short_description: "Google Play Billing y entitlements de Tracon"
+  default_prompt: "Implementa o revisa billing, membresías, compras, verificación server-side, RTDN y entitlements de Tracon con cobros seguros y flags."
