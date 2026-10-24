@@ -1,6 +1,6 @@
 ---
 name: tracon-web
-description: Diseña e implementa la interfaz visual web de Tracon con Vue.js, TypeScript y Tailwind CSS: arquitectura modular basada en componentes reutilizables, datos estáticos (sin backend), diseño responsive, accesibilidad y temas.
+description: Diseña e implementa la interfaz visual web de Tracon con Vue.js, TypeScript y Tailwind CSS: arquitectura modular basada en componentes reutilizables, diseño responsive, accesibilidad y temas.
 ---
 
 # Tracon Web
@@ -10,10 +10,9 @@ description: Diseña e implementa la interfaz visual web de Tracon con Vue.js, T
 Esta skill coordina la interfaz y experiencia web de Tracon.
 
 **Directivas obligatorias de desarrollo:**
-1. **Stack Técnico**: Frontend visual desarrollado exclusivamente con **Vue.js 3** (Composition API con `<script setup>`), **TypeScript** y **Tailwind CSS**.
-2. **Aislamiento de Backend (Datos Estáticos)**: Prohibido tocar, conectar o alterar backend, microservicios o endpoints externos por el momento. Toda la información y estados de pantalla se manejan con datos estáticos locales y mocks tipados.
-3. **Modularidad y Reutilización**: Todo el código debe ser modular y dividido en componentes reutilizables (inputs, botones, tarjetas, modales, layouts) para evitar duplicación.
-4. **Ámbito Web Estricto**: **Tracon-web tasks MUST NOT inspect, execute, modify or validate Flutter/mobile unless the user explicitly requests mobile work.** No uses Flutter, ADB, emuladores, APK ni archivos de `mobile/`.
+1. **Stack Técnico**: Frontend visual desarrollado con **Vue.js 3** (Composition API con `<script setup>`), **TypeScript** y **Tailwind CSS**.
+2. **Modularidad y Reutilización**: Todo el código debe ser modular y dividido en componentes reutilizables (inputs, botones, tarjetas, modales, layouts) para evitar duplicación.
+3. **Ámbito Web Estricto**: **Tracon-web tasks MUST NOT inspect, execute, modify or validate Flutter/mobile unless the user explicitly requests mobile work.** No uses Flutter, ADB, emuladores, APK ni archivos de `mobile/`.
 
 ## Skills compañeras
 
@@ -86,7 +85,6 @@ Registra el cambio con `../tracon-change-contract/SKILL.md` y la política
 ## Reglas técnicas
 
 - **Arquitectura de componentes**: Utiliza Vue 3 Composition API (`<script setup lang="ts">`), TypeScript estricto y Tailwind CSS para diseño y estilos utilitarios consistentes.
-- **Sin backend / Solo datos estáticos**: Todo dato de vista reside en módulos locales (`src/data/` o `src/mocks/`) con tipos e interfaces TypeScript claros; no realizar peticiones HTTP a servidores ni endpoints en esta etapa.
 - **Reutilización y modularidad**: Divide las vistas en componentes atómicos (`src/components/ui/` y `src/components/common/`) con props y eventos explícitamente tipados.
 - Vite genera archivos estáticos para el bundle; no agregues un proceso Node permanente al VPS ni migres de stack sin necesidad medida.
 - Las rutas conocidas se sirven desde `web/current/dist`. `/api/`, `/ws/`,
