@@ -8,13 +8,13 @@ src/
 ├── components/     # componentes modulares y reutilizables
 │   ├── common/     # botones, inputs, modales, cards
 │   └── layout/     # navbar, footer, sidebar
-├── data/           # información y mock data estática (sin backend)
+├── data/           # datos, modelos o configuración
 ├── views/          # vistas / páginas principales
 ├── types/          # interfaces y tipos TypeScript
 └── styles/         # configuración y utilidades Tailwind / CSS
 ```
 
-La web utiliza **Vue.js 3**, **TypeScript** y **Tailwind CSS**, empaquetada con **Vite**. La arquitectura se basa estrictamente en componentes modulares reutilizables y datos estáticos locales (sin consumo de backend por el momento).
+La web utiliza **Vue.js 3**, **TypeScript** y **Tailwind CSS**, empaquetada con **Vite**. La arquitectura se basa en componentes modulares reutilizables.
 
 ## Dispatch de producción
 

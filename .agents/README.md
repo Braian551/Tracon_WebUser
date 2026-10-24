@@ -18,7 +18,7 @@ Esta carpeta contiene skills de proyecto en el formato `SKILL.md` con frontmatte
 - `tracon-architecture`: Clean Architecture, SOLID, límites y patrones GOF.
 - `tracon-billing`: monetización, Google Play Billing, catálogo y entitlements.
 - `tracon-mobile`: Flutter y plataformas móviles.
-- `tracon-web`: Vue.js, TypeScript, Tailwind CSS, componentes modulares, datos estáticos y UI.
+- `tracon-web`: Vue.js, TypeScript, Tailwind CSS, componentes modulares y UI.
 - `tracon-backend`: Spring Boot, datos y seguridad servidor.
 - `tracon-media`: R2, imágenes, video, HLS y worker Go.
 - `tracon-product`: reglas funcionales y alcance.
