@@ -70,10 +70,10 @@ const handleDeleteChat = () => {
 </script>
 
 <template>
-  <div class="flex-1 flex gap-4 lg:gap-5 min-w-0">
-    <!-- Left Column: Chats List (hidden on mobile if chat is active) -->
+  <div class="flex-1 flex gap-3 sm:gap-4 lg:gap-5 min-w-0">
+    <!-- Left Column: Chats List (40%) -->
     <div
-      class="w-full md:w-auto shrink-0"
+      class="w-full md:flex-[2] min-w-0"
       :class="showMobileChat ? 'hidden md:block' : 'block'"
     >
       <ChatList
@@ -84,9 +84,9 @@ const handleDeleteChat = () => {
       />
     </div>
 
-    <!-- Right Column: Conversation or Minimalist Empty State (floating card) -->
+    <!-- Right Column: Conversation or Minimalist Empty State (60%) -->
     <div
-      class="w-full md:w-[420px] lg:w-[460px] xl:w-[480px] shrink-0 flex flex-col min-w-0"
+      class="w-full md:flex-[3] min-w-0 flex flex-col"
       :class="!showMobileChat ? 'hidden md:flex' : 'flex'"
     >
       <template v-if="selectedConversation()">

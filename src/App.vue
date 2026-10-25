@@ -16,7 +16,7 @@ const navItems = ref(navItemsData)
 const initialPosts = ref(initialPostsData)
 const suggestedCommunities = ref(suggestedCommunitiesData)
 const conversations = ref(conversationsData)
-const activeNavId = ref('chats')
+const activeNavId = ref('inicio')
 
 const handleNavigate = (id: string) => {
   activeNavId.value = id
@@ -24,9 +24,9 @@ const handleNavigate = (id: string) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-[#f3f4f6] font-sans antialiased selection:bg-[#f0254c] selection:text-white p-2 sm:p-3 lg:p-4">
+  <div class="min-h-screen bg-black text-[#f3f4f6] font-sans antialiased selection:bg-[#f0254c] selection:text-white px-2 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 flex justify-center">
     <!-- Floating Cards layout with gap separation between all columns -->
-    <div class="w-full max-w-[1360px] mx-auto flex items-start gap-3 sm:gap-4 lg:gap-5 justify-center pb-16 md:pb-0">
+    <div class="w-full max-w-[1320px] flex items-start gap-3 sm:gap-4 lg:gap-5 pb-16 md:pb-0">
       <!-- Left Column: Navigation Sidebar -->
       <LeftSidebar
         :nav-items="navItems"

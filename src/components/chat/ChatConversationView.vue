@@ -57,9 +57,9 @@ const handleSend = () => {
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-[#0c0d12] overflow-hidden shadow-lg select-none">
+  <div class="flex-1 flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden shadow-lg select-none">
     <!-- Top Header -->
-    <header class="h-16 px-4 sm:px-6 border-b border-[#1f212a] flex items-center justify-between shrink-0 bg-[#0c0d12]/90 backdrop-blur-md z-10">
+    <header class="h-16 px-4 sm:px-6 border-b border-[#1f212a] flex items-center justify-between shrink-0 bg-black/90 backdrop-blur-md z-10">
       <div class="flex items-center gap-3 min-w-0">
         <!-- Back button (mobile) -->
         <button
@@ -160,7 +160,7 @@ const handleSend = () => {
     </div>
 
     <!-- Bottom Message Input Bar -->
-    <div class="p-4 border-t border-[#1f212a] bg-[#0c0d12]">
+    <div class="p-4 border-t border-[#1f212a] bg-black">
       <form
         @submit.prevent="handleSend"
         class="flex items-center gap-2 bg-[#121319] border border-[#20222e] rounded-full px-4 py-2 focus-within:border-gray-600 transition-colors"

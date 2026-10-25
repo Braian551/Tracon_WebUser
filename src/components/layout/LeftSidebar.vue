@@ -54,7 +54,7 @@ const handleSelect = (id: string) => {
 
 <template>
   <aside
-    class="flex flex-col justify-between h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 px-2.5 sm:px-3 lg:px-4 py-4 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black select-none z-20 w-[74px] lg:w-[250px] xl:w-[265px] shrink-0 shadow-lg"
+    class="flex flex-col justify-between h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 px-2.5 sm:px-3 lg:px-4 py-4 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black select-none z-20 w-[74px] lg:w-[240px] xl:w-[260px] shrink-0 shadow-lg"
   >
     <!-- Top Area: Logo + Nav Items + CTA -->
     <div class="flex flex-col items-center lg:items-start w-full">
