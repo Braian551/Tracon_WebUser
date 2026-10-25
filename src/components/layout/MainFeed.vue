@@ -39,7 +39,7 @@ const handleTabChange = (tabId: string) => {
 
 <template>
   <main
-    class="flex-1 min-w-0 max-w-2xl rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 shadow-lg"
+    class="flex-1 min-w-0 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 shadow-lg"
   >
     <!-- Top sticky feed tabs -->
     <FeedTabs

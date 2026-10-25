@@ -29,7 +29,7 @@ const adjustHeight = () => {
 </script>
 
 <template>
-  <div class="p-4 sm:p-5 rounded-2xl border border-[#1f212a] bg-[#101117] shadow-sm transition-colors">
+  <div class="p-4 sm:p-5 rounded-2xl border border-[#1f212a] bg-black shadow-sm transition-colors">
     <div class="flex gap-3">
       <!-- User avatar -->
       <Avatar size="md" />

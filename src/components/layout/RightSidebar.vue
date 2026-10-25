@@ -13,7 +13,7 @@ const searchQuery = ref('')
 </script>
 
 <template>
-  <aside class="hidden lg:flex flex-col w-[310px] xl:w-[340px] sticky top-4 lg:top-5 gap-4 select-none">
+  <aside class="hidden lg:flex flex-col w-[300px] xl:w-[340px] sticky top-4 lg:top-5 gap-4 select-none shrink-0">
     <!-- Top Search Bar -->
     <div>
       <SearchInput
@@ -24,7 +24,7 @@ const searchQuery = ref('')
 
     <!-- Suggested Communities Card -->
     <div
-      class="p-4 rounded-2xl border border-[#1f212a] bg-[#101117] shadow-lg transition-colors"
+      class="p-4 rounded-2xl border border-[#1f212a] bg-black shadow-lg transition-colors"
     >
       <h3 class="text-base font-bold text-white tracking-wide mb-4">
         Comunidades sugeridas

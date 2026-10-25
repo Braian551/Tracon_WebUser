@@ -7,7 +7,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-[#0c0d12] overflow-hidden shadow-lg select-none">
+  <div class="flex-1 flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden shadow-lg select-none">
     <!-- Top Header with horizontal 3 dots -->
     <header class="h-16 px-6 border-b border-[#1f212a] flex items-center justify-end shrink-0">
       <button

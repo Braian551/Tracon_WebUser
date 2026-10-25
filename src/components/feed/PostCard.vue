@@ -13,7 +13,7 @@ defineProps<Props>()
 </script>
 
 <template>
-  <article class="p-4 sm:p-5 rounded-2xl border border-[#1f212a] bg-[#101117] transition-all duration-200 hover:bg-[#14151f] shadow-sm">
+  <article class="p-4 sm:p-5 rounded-2xl border border-[#1f212a] bg-black transition-all duration-200 hover:border-[#2d303d] hover:bg-white/[0.015] shadow-sm">
     <div class="flex gap-3">
       <!-- Author Avatar -->
       <Avatar
