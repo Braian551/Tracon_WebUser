@@ -66,6 +66,14 @@ Registra el cambio con `../tracon-change-contract/SKILL.md` y la política
   1440 y 1920 px sin overflow.
 - Anima principalmente `transform` y `opacity`, con tokens y soporte obligatorio
   para `prefers-reduced-motion`.
+- **Regla obligatoria de suavidad y transiciones (Motion Standard)**: Todo cambio
+  de pantalla, vista, subapartado, modal o selector (ej. notificaciones,
+  creación de comunidad, selector de juegos, cambio de tabs/vistas) debe
+  implementar la transición suave continua tipo deslizamiento con crossfade:
+  - Curva canónica: `cubic-bezier(0.23, 1, 0.32, 1)` (`--ease-out`).
+  - Duración estándar: `240ms` a `260ms`.
+  - Propiedades animadas: estrictamente `opacity` y `transform` (`translateY(8px–12px)` a `0` con microescala `0.995` a `1`).
+  - Estabilidad de altura y layout: el contenedor padre debe tener dimensiones fijas con `relative overflow-hidden`. Durante la salida (`leave-active`), el elemento saliente debe anclarse absolutamente (`position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;`) para eliminar cualquier colapso de altura, salto de layout o expansión brusca. Nunca usar cortes secos ni transiciones que colapsen el contenedor a 0px.
 - Apunta a WCAG 2.2 AA razonable sin afirmar certificación: teclado, foco, contraste,
   landmarks, headings, labels, targets y menú móvil accesible.
 - El usuario nunca necesita comprender arquitectura técnica para entender una

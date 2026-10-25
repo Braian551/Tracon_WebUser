@@ -8,6 +8,8 @@ import CommunitiesFeed from './components/communities/CommunitiesFeed.vue'
 import CommunityChatRoom from './components/communities/CommunityChatRoom.vue'
 import CommunityDetailSidebar from './components/communities/CommunityDetailSidebar.vue'
 import NotificationsView from './components/notifications/NotificationsView.vue'
+import CreateCommunityView from './components/communities/CreateCommunityView.vue'
+import RequestGameModal from './components/communities/RequestGameModal.vue'
 import {
   navItemsData,
   initialPostsData,
@@ -30,6 +32,8 @@ const activeNavId = ref('inicio')
 const chatSubTab = ref<'chats' | 'comunidades'>('chats')
 const selectedCommunityId = ref<string | null>(null)
 const showCommunitiesNotifications = ref(false)
+const isCreatingCommunity = ref(false)
+const isGlobalRequestGameOpen = ref(false)
 
 const activeCommunityDetail = computed(() => {
   if (!selectedCommunityId.value) return null
@@ -42,15 +46,32 @@ const activeCommunityDetail = computed(() => {
 const handleSelectCommunity = (comm: CommunityFeedItem) => {
   selectedCommunityId.value = comm.id
   showCommunitiesNotifications.value = false
+  isCreatingCommunity.value = false
 }
 
 const handleBackFromCommunity = () => {
   selectedCommunityId.value = null
   showCommunitiesNotifications.value = false
+  isCreatingCommunity.value = false
+}
+
+const handleCommunityCreated = (newComm: CommunityFeedItem) => {
+  myCommunities.value.unshift(newComm)
+  isCreatingCommunity.value = false
 }
 
 const handleNavigate = (id: string) => {
+  if (id === 'crear') {
+    activeNavId.value = 'chats'
+    chatSubTab.value = 'comunidades'
+    selectedCommunityId.value = null
+    showCommunitiesNotifications.value = false
+    isCreatingCommunity.value = true
+    return
+  }
+
   activeNavId.value = id
+  isCreatingCommunity.value = false
   if (id !== 'chats') {
     selectedCommunityId.value = null
     showCommunitiesNotifications.value = false
@@ -102,10 +123,16 @@ const handleNavigate = (id: string) => {
 
               <!-- When browsing communities list -->
               <template v-else>
-                <!-- Middle Column: Communities Feed or Notifications View -->
+                <!-- Middle Column: Communities Feed, Create Community or Notifications View -->
                 <Transition name="fade-view" mode="out-in">
+                  <CreateCommunityView
+                    v-if="isCreatingCommunity"
+                    key="create-community-feed"
+                    @back="isCreatingCommunity = false"
+                    @community-created="handleCommunityCreated"
+                  />
                   <NotificationsView
-                    v-if="showCommunitiesNotifications"
+                    v-else-if="showCommunitiesNotifications"
                     key="notifications-feed"
                     @back="showCommunitiesNotifications = false"
                   />
@@ -115,14 +142,19 @@ const handleNavigate = (id: string) => {
                     :active-tab="chatSubTab"
                     :my-communities="myCommunities"
                     :suggested-communities="suggestedFeedCommunities"
-                    @change-tab="(tab) => { chatSubTab = tab; selectedCommunityId = null; showCommunitiesNotifications = false }"
+                    @change-tab="(tab) => { chatSubTab = tab; selectedCommunityId = null; showCommunitiesNotifications = false; isCreatingCommunity = false }"
                     @select-community="handleSelectCommunity"
                     @click-notifications="showCommunitiesNotifications = true"
+                    @create-community="isCreatingCommunity = true"
+                    @request-game="isGlobalRequestGameOpen = true"
                   />
                 </Transition>
 
                 <!-- Right Column: Search & Communities Sidebar -->
-                <RightSidebar :communities="suggestedCommunities" />
+                <RightSidebar
+                  :communities="suggestedCommunities"
+                  @request-game="isGlobalRequestGameOpen = true"
+                />
               </template>
             </template>
           </template>
@@ -132,11 +164,22 @@ const handleNavigate = (id: string) => {
             <MainFeed :initial-posts="initialPosts" />
 
             <!-- Right Column: Search & Communities Sidebar -->
-            <RightSidebar :communities="suggestedCommunities" />
+            <RightSidebar
+              :communities="suggestedCommunities"
+              @request-game="isGlobalRequestGameOpen = true"
+            />
           </template>
         </div>
       </Transition>
     </div>
+
+    <!-- Global Modal: Solicitar juego al catálogo -->
+    <RequestGameModal
+      :is-open="isGlobalRequestGameOpen"
+      title="Solicitar juego al catálogo"
+      description="Envía los datos del juego para incorporarlo al catálogo oficial de Tracon."
+      @close="isGlobalRequestGameOpen = false"
+    />
 
     <!-- Mobile Bottom Navigation Bar (< 768px) -->
     <nav
