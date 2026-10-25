@@ -1,25 +1,60 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import LeftSidebar from './components/layout/LeftSidebar.vue'
 import MainFeed from './components/layout/MainFeed.vue'
 import RightSidebar from './components/layout/RightSidebar.vue'
 import ChatView from './components/chat/ChatView.vue'
+import CommunitiesFeed from './components/communities/CommunitiesFeed.vue'
+import CommunityChatRoom from './components/communities/CommunityChatRoom.vue'
+import CommunityDetailSidebar from './components/communities/CommunityDetailSidebar.vue'
+import NotificationsView from './components/notifications/NotificationsView.vue'
 import {
   navItemsData,
   initialPostsData,
   suggestedCommunitiesData,
   conversationsData,
+  myCommunitiesData,
+  suggestedFeedCommunitiesData,
+  communityDetailsData,
 } from './data/mockData'
+import type { CommunityFeedItem } from './types'
 import { Zap, MessageCircle, PlusCircle, PlayCircle, User } from 'lucide-vue-next'
 
 const navItems = ref(navItemsData)
 const initialPosts = ref(initialPostsData)
 const suggestedCommunities = ref(suggestedCommunitiesData)
+const myCommunities = ref(myCommunitiesData)
+const suggestedFeedCommunities = ref(suggestedFeedCommunitiesData)
 const conversations = ref(conversationsData)
 const activeNavId = ref('inicio')
+const chatSubTab = ref<'chats' | 'comunidades'>('chats')
+const selectedCommunityId = ref<string | null>(null)
+const showCommunitiesNotifications = ref(false)
+
+const activeCommunityDetail = computed(() => {
+  if (!selectedCommunityId.value) return null
+  return (
+    communityDetailsData[selectedCommunityId.value] ||
+    communityDetailsData['specimen-zero']
+  )
+})
+
+const handleSelectCommunity = (comm: CommunityFeedItem) => {
+  selectedCommunityId.value = comm.id
+  showCommunitiesNotifications.value = false
+}
+
+const handleBackFromCommunity = () => {
+  selectedCommunityId.value = null
+  showCommunitiesNotifications.value = false
+}
 
 const handleNavigate = (id: string) => {
   activeNavId.value = id
+  if (id !== 'chats') {
+    selectedCommunityId.value = null
+    showCommunitiesNotifications.value = false
+  }
 }
 </script>
 
@@ -37,18 +72,70 @@ const handleNavigate = (id: string) => {
         @open-publish-modal="() => {}"
       />
 
-      <!-- Dynamic Section: Chats or Main Feed -->
-      <template v-if="activeNavId === 'chats'">
-        <ChatView :conversations="conversations" />
-      </template>
+      <!-- Dynamic Section: Chats / Communities or Main Feed with smooth transitions -->
+      <Transition name="fade-view" mode="out-in">
+        <div
+          :key="activeNavId === 'chats' ? (selectedCommunityId ? `community-${selectedCommunityId}` : `chats-${chatSubTab}`) : activeNavId"
+          class="flex-1 flex gap-3 sm:gap-4 lg:gap-5 min-w-0"
+        >
+          <template v-if="activeNavId === 'chats'">
+            <template v-if="chatSubTab === 'chats'">
+              <ChatView
+                :conversations="conversations"
+                :active-tab="chatSubTab"
+                @change-tab="(tab) => { chatSubTab = tab; selectedCommunityId = null }"
+              />
+            </template>
 
-      <template v-else>
-        <!-- Middle Column: Main Feed -->
-        <MainFeed :initial-posts="initialPosts" />
+            <template v-else>
+              <!-- When a community room chat is opened -->
+              <template v-if="selectedCommunityId && activeCommunityDetail">
+                <CommunityChatRoom
+                  :community="activeCommunityDetail"
+                  @back="handleBackFromCommunity"
+                />
 
-        <!-- Right Column: Search & Communities Sidebar -->
-        <RightSidebar :communities="suggestedCommunities" />
-      </template>
+                <CommunityDetailSidebar
+                  :community="activeCommunityDetail"
+                />
+              </template>
+
+              <!-- When browsing communities list -->
+              <template v-else>
+                <!-- Middle Column: Communities Feed or Notifications View -->
+                <Transition name="fade-view" mode="out-in">
+                  <NotificationsView
+                    v-if="showCommunitiesNotifications"
+                    key="notifications-feed"
+                    @back="showCommunitiesNotifications = false"
+                  />
+                  <CommunitiesFeed
+                    v-else
+                    key="communities-feed"
+                    :active-tab="chatSubTab"
+                    :my-communities="myCommunities"
+                    :suggested-communities="suggestedFeedCommunities"
+                    @change-tab="(tab) => { chatSubTab = tab; selectedCommunityId = null; showCommunitiesNotifications = false }"
+                    @select-community="handleSelectCommunity"
+                    @click-notifications="showCommunitiesNotifications = true"
+                  />
+                </Transition>
+
+                <!-- Right Column: Search & Communities Sidebar -->
+                <RightSidebar :communities="suggestedCommunities" />
+              </template>
+            </template>
+          </template>
+
+          <template v-else>
+            <!-- Middle Column: Main Feed -->
+            <MainFeed :initial-posts="initialPosts" />
+
+            <!-- Right Column: Search & Communities Sidebar -->
+            <RightSidebar :communities="suggestedCommunities" />
+          </template>
+        </div>
+      </Transition>
     </div>
 
     <!-- Mobile Bottom Navigation Bar (< 768px) -->
@@ -102,3 +189,28 @@ const handleNavigate = (id: string) => {
     </nav>
   </div>
 </template>
+
+<style scoped>
+.fade-view-enter-active,
+.fade-view-leave-active {
+  transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1), transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.fade-view-enter-from {
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+.fade-view-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-view-enter-active,
+  .fade-view-leave-active {
+    transition: opacity 150ms ease;
+    transform: none;
+  }
+}
+</style>

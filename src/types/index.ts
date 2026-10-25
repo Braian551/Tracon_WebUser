@@ -56,6 +56,35 @@ export interface SuggestedCommunity {
   avatarBg?: string
 }
 
+export interface CommunityFeedItem {
+  id: string
+  name: string
+  gameSubtitle: string
+  description: string
+  membersCount: string
+  isVerified?: boolean
+  avatarBg?: string
+}
+
+export interface CommunityChannelMessage {
+  id: string
+  dateHeader?: string
+  authorName: string
+  avatarBg?: string
+  text: string
+  timestamp?: string
+}
+
+export interface CommunityDetail {
+  id: string
+  name: string
+  gameSubtitle: string
+  membersCount: string
+  activeChannel: string
+  channels: { id: string; name: string; unreadBadge?: number }[]
+  messages: CommunityChannelMessage[]
+}
+
 export interface ChatMessage {
   id: string
   text: string
@@ -77,5 +106,19 @@ export interface Conversation {
   isTraconOfficial?: boolean
   messages: ChatMessage[]
 }
+
+export interface NotificationItem {
+  id: string
+  groupSection: 'Hoy' | 'Ayer' | string
+  actor: {
+    name: string
+    handle?: string
+    avatarType: 'purple_mask' | 'tracon' | 'minecraft' | 'red_user'
+  }
+  actionText: string
+  timeAgo: string
+  thumbnailType?: 'dark_scene' | 'night_car' | 'profile_preview' | 'tracon_promo'
+}
+
 
 
