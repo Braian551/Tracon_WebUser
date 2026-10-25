@@ -1,18 +1,24 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Target, Bell, SquarePen } from 'lucide-vue-next'
+import { Target, SquarePen } from 'lucide-vue-next'
+import NotificationBell from '../common/NotificationBell.vue'
+
+interface Props {
+  isNotificationsActive?: boolean
+}
+
+withDefaults(defineProps<Props>(), {
+  isNotificationsActive: false,
+})
 
 const emit = defineEmits<{
   (e: 'click-radar'): void
   (e: 'click-notifications'): void
   (e: 'click-compose'): void
 }>()
-
-const unreadNotifications = ref(3)
 </script>
 
 <template>
-  <div class="flex items-center gap-1">
+  <div class="flex items-center gap-1.5">
     <!-- 1. Radar / Target (Minimalist flat accent) -->
     <button
       type="button"
@@ -23,19 +29,12 @@ const unreadNotifications = ref(3)
       <Target class="w-4 h-4" />
     </button>
 
-    <!-- 2. Notifications Bell with subtle micro-badge -->
-    <button
-      type="button"
+    <!-- 2. Reusable Notifications Bell -->
+    <NotificationBell
+      :count="6"
+      :is-active="isNotificationsActive"
       @click="emit('click-notifications')"
-      class="relative p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-      title="Notificaciones"
-    >
-      <Bell class="w-4.5 h-4.5" />
-      <span
-        v-if="unreadNotifications > 0"
-        class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#f0254c] ring-2 ring-black"
-      />
-    </button>
+    />
 
     <!-- 3. New Message / Compose Icon -->
     <button

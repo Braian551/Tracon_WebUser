@@ -24,7 +24,7 @@ const selectTab = (tabId: string) => {
 
 <template>
   <nav
-    class="sticky top-0 z-30 flex items-center justify-around border-b border-[#1f212a] bg-black/85 backdrop-blur-md"
+    class="relative sticky top-0 z-30 flex items-center justify-around border-b border-[#1f212a] bg-black/85 backdrop-blur-md select-none"
   >
     <button
       v-for="tab in tabs"
@@ -39,11 +39,15 @@ const selectTab = (tabId: string) => {
       ]"
     >
       <span>{{ tab.label }}</span>
-      <span
-        v-if="activeTab === tab.id"
-        class="absolute bottom-0 left-1/2 h-[3px] w-12 -translate-x-1/2 rounded-full bg-[#f0254c] shadow-[0_0_8px_rgba(240,37,76,0.6)]"
-      />
     </button>
+
+    <!-- Smooth sliding active underline indicator -->
+    <span
+      class="absolute bottom-0 h-[3px] w-14 rounded-full bg-[#f0254c] shadow-[0_0_10px_rgba(240,37,76,0.6)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] -translate-x-1/2 pointer-events-none"
+      :style="{
+        left: activeTab === 'para-ti' ? '16.666%' : activeTab === 'siguiendo' ? '50%' : '83.333%'
+      }"
+    />
   </nav>
 </template>
 

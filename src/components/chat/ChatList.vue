@@ -3,22 +3,32 @@ import { ref } from 'vue'
 import { Search } from 'lucide-vue-next'
 import Avatar from '../common/Avatar.vue'
 import ChatUtilityBar from './ChatUtilityBar.vue'
+import CommunityThreeUsersIcon from '../common/CommunityThreeUsersIcon.vue'
+import ChatBubbleSolidIcon from '../common/ChatBubbleSolidIcon.vue'
+import NewChatModal from './NewChatModal.vue'
 import type { Conversation } from '../../types'
 
 interface Props {
   conversations: Conversation[]
   selectedId?: string
+  activeTab?: 'chats' | 'comunidades'
+  isNotificationsActive?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  activeTab: 'chats',
+  isNotificationsActive: false,
+})
 
 const emit = defineEmits<{
   (e: 'select-conversation', id: string): void
   (e: 'new-chat'): void
+  (e: 'change-tab', tab: 'chats' | 'comunidades'): void
+  (e: 'click-notifications'): void
 }>()
 
-const activeTab = ref<'chats' | 'comunidades'>('chats')
 const searchQuery = ref('')
+const isNewChatModalOpen = ref(false)
 
 const filteredConversations = () => {
   if (!searchQuery.value.trim()) return props.conversations
@@ -39,39 +49,51 @@ const filteredConversations = () => {
 
       <!-- The 3 Action Buttons: Radar, Notifications, Compose -->
       <ChatUtilityBar
+        :is-notifications-active="isNotificationsActive"
         @click-radar="() => {}"
-        @click-notifications="() => {}"
-        @click-compose="emit('new-chat')"
+        @click-notifications="emit('click-notifications')"
+        @click-compose="isNewChatModalOpen = true"
       />
     </div>
 
-    <!-- Sub-tabs: Chats vs Comunidades -->
-    <div class="flex border-b border-[#15161e] px-2">
+    <!-- New Chat / Create Group Modal matching Design -->
+    <NewChatModal
+      :is-open="isNewChatModalOpen"
+      @close="isNewChatModalOpen = false"
+      @new-direct-chat="emit('new-chat')"
+      @new-group="() => {}"
+    />
+
+    <!-- Sub-tabs: Chats vs Comunidades with icons -->
+    <div class="relative flex border-b border-[#15161e] px-2">
       <button
         type="button"
-        @click="activeTab = 'chats'"
-        class="relative flex-1 py-3 text-sm font-semibold text-center transition-colors cursor-pointer"
-        :class="activeTab === 'chats' ? 'text-white' : 'text-gray-400 hover:text-gray-200'"
+        @click="emit('change-tab', 'chats')"
+        class="relative flex-1 py-3 text-sm font-semibold text-center transition-colors duration-200 cursor-pointer flex items-center justify-center gap-2"
+        :class="activeTab === 'chats' ? 'text-[#f0254c]' : 'text-gray-400 hover:text-gray-200'"
       >
-        Chats
-        <span
-          v-if="activeTab === 'chats'"
-          class="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-[3px] rounded-full bg-[#f0254c]"
-        />
+        <ChatBubbleSolidIcon class="w-4 h-4" />
+        <span>Chats</span>
       </button>
 
       <button
         type="button"
-        @click="activeTab = 'comunidades'"
-        class="relative flex-1 py-3 text-sm font-semibold text-center transition-colors cursor-pointer"
-        :class="activeTab === 'comunidades' ? 'text-white' : 'text-gray-400 hover:text-gray-200'"
+        @click="emit('change-tab', 'comunidades')"
+        class="relative flex-1 py-3 text-sm font-semibold text-center transition-colors duration-200 cursor-pointer flex items-center justify-center gap-2"
+        :class="activeTab === 'comunidades' ? 'text-[#f0254c]' : 'text-gray-400 hover:text-gray-200'"
       >
-        Comunidades
-        <span
-          v-if="activeTab === 'comunidades'"
-          class="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-[3px] rounded-full bg-[#f0254c]"
-        />
+        <CommunityThreeUsersIcon class="w-4 h-4" />
+        <span>Comunidades</span>
       </button>
+
+      <!-- Smooth sliding indicator -->
+      <span
+        class="absolute bottom-0 h-[3px] rounded-full bg-[#f0254c] shadow-[0_0_8px_rgba(240,37,76,0.6)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] -translate-x-1/2 pointer-events-none"
+        :class="activeTab === 'chats' ? 'w-16' : 'w-24'"
+        :style="{
+          left: activeTab === 'chats' ? '25%' : '75%'
+        }"
+      />
     </div>
 
     <!-- Search input -->

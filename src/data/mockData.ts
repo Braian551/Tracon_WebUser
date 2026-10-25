@@ -1,4 +1,12 @@
-import type { NavItem, Post, SuggestedCommunity, Conversation } from '../types'
+import type {
+  NavItem,
+  Post,
+  SuggestedCommunity,
+  Conversation,
+  CommunityFeedItem,
+  CommunityDetail,
+  NotificationItem,
+} from '../types'
 
 export const navItemsData: NavItem[] = [
   { id: 'inicio', label: 'Inicio', icon: 'Zap', active: true },
@@ -81,6 +89,97 @@ export const suggestedCommunitiesData: SuggestedCommunity[] = [
     avatarBg: '#1f2622',
   },
 ]
+
+export const myCommunitiesData: CommunityFeedItem[] = [
+  {
+    id: 'specimen-zero',
+    name: 'Specimen zero',
+    gameSubtitle: 'Specimen Zero',
+    description: 'Un juego de terror',
+    membersCount: '21 miembros',
+    isVerified: true,
+    avatarBg: '#181b24',
+  },
+]
+
+export const suggestedFeedCommunitiesData: CommunityFeedItem[] = [
+  {
+    id: 'brawl-stars-feed',
+    name: 'Brawl Stars',
+    gameSubtitle: 'Brawl Stars',
+    description: 'Comunidad para jugadores de Brawl Stars. Encuentra equipo, comparte jugadas...',
+    membersCount: '5 miembros',
+    isVerified: true,
+    avatarBg: '#212433',
+  },
+  {
+    id: 'granny-feed',
+    name: 'Granny',
+    gameSubtitle: 'Specimen Zero',
+    description: 'Entren a los que les gusta Granny',
+    membersCount: '3 miembros',
+    isVerified: false,
+    avatarBg: '#2a1a1f',
+  },
+]
+
+export const communityDetailsData: Record<string, CommunityDetail> = {
+  'specimen-zero': {
+    id: 'specimen-zero',
+    name: 'Specimen zero',
+    gameSubtitle: 'Specimen Zero',
+    membersCount: '22 miembros',
+    activeChannel: 'general',
+    channels: [
+      { id: 'general', name: '# General', unreadBadge: 2 },
+      { id: 'multimedia', name: 'Multimedia' },
+      { id: 'anuncios', name: 'Anuncios' },
+    ],
+    messages: [
+      {
+        id: 'cm-1',
+        dateHeader: '13 SEP 2026 · 7:46 a. m.',
+        authorName: 'Braian Andrés Oquendo Durango',
+        text: 'jjajjaja si aún está promocionada del todo por el canal',
+        avatarBg: '#232634',
+      },
+      {
+        id: 'cm-2',
+        dateHeader: '13 SEP 2026 · 5:54 p. m.',
+        authorName: 'Axel',
+        text: 'hola',
+        avatarBg: '#1f2832',
+      },
+      {
+        id: 'cm-3',
+        dateHeader: '20 SEP 2026 · 1:24 p. m.',
+        authorName: 'Leogamer2010',
+        text: 'hola gente como estáis',
+        avatarBg: '#2a2233',
+      },
+      {
+        id: 'cm-4',
+        dateHeader: '9 OCT 2026 · 1:02 p. m.',
+        authorName: 'Octavio',
+        text: 'hola',
+        avatarBg: '#252528',
+      },
+      {
+        id: 'cm-5',
+        dateHeader: 'JUEVES · 2:30 p. m.',
+        authorName: 'Mr Meat',
+        text: 'hola',
+        avatarBg: '#1e2621',
+      },
+      {
+        id: 'cm-6',
+        authorName: 'Dayam',
+        text: 'holaaa',
+        avatarBg: '#2e2025',
+      },
+    ],
+  },
+}
 
 export const conversationsData: Conversation[] = [
   {
@@ -180,5 +279,130 @@ export const conversationsData: Conversation[] = [
     messages: [],
   },
 ]
+
+export const notificationsData: NotificationItem[] = [
+  // Hoy
+  {
+    id: 'notif-1',
+    groupSection: 'Hoy',
+    actor: {
+      name: 'pasa pasa',
+      avatarType: 'purple_mask',
+    },
+    actionText: '',
+    timeAgo: '24 min',
+  },
+  {
+    id: 'notif-2',
+    groupSection: 'Hoy',
+    actor: {
+      name: 'tracon',
+      avatarType: 'tracon',
+    },
+    actionText: 'respondió a tu comentario.',
+    timeAgo: '4 h',
+    thumbnailType: 'dark_scene',
+  },
+  {
+    id: 'notif-3',
+    groupSection: 'Hoy',
+    actor: {
+      name: 'tracon',
+      avatarType: 'tracon',
+    },
+    actionText: 'reaccionó a tu comentario.',
+    timeAgo: '4 h',
+    thumbnailType: 'dark_scene',
+  },
+
+  // Ayer
+  {
+    id: 'notif-4',
+    groupSection: 'Ayer',
+    actor: {
+      name: 'camilo828288',
+      avatarType: 'minecraft',
+    },
+    actionText: 'indicó que le gusta tu publicación.',
+    timeAgo: '15 h',
+    thumbnailType: 'night_car',
+  },
+  {
+    id: 'notif-5',
+    groupSection: 'Ayer',
+    actor: {
+      name: 'octav20rpro',
+      avatarType: 'red_user',
+    },
+    actionText: 'indicó que le gusta tu publicación.',
+    timeAgo: '16 h',
+    thumbnailType: 'profile_preview',
+  },
+  {
+    id: 'notif-6',
+    groupSection: 'Ayer',
+    actor: {
+      name: 'octav20rpro',
+      avatarType: 'red_user',
+    },
+    actionText: 'comenzó a seguirte.',
+    timeAgo: '16 h',
+  },
+  {
+    id: 'notif-7',
+    groupSection: 'Ayer',
+    actor: {
+      name: 'octav20rpro',
+      avatarType: 'red_user',
+    },
+    actionText: 'indicó que le gusta tu publicación.',
+    timeAgo: '16 h',
+    thumbnailType: 'night_car',
+  },
+  {
+    id: 'notif-8',
+    groupSection: 'Ayer',
+    actor: {
+      name: 'beatrizcatano',
+      avatarType: 'red_user',
+    },
+    actionText: 'comenzó a seguirte.',
+    timeAgo: '21 h',
+  },
+  {
+    id: 'notif-9',
+    groupSection: 'Ayer',
+    actor: {
+      name: 'beatrizcatano',
+      avatarType: 'red_user',
+    },
+    actionText: 'indicó que le gusta tu Trak.',
+    timeAgo: '21 h',
+    thumbnailType: 'night_car',
+  },
+  {
+    id: 'notif-10',
+    groupSection: 'Ayer',
+    actor: {
+      name: 'beatrizcatano',
+      avatarType: 'red_user',
+    },
+    actionText: 'impulsó tu Trak.',
+    timeAgo: '21 h',
+    thumbnailType: 'night_car',
+  },
+  {
+    id: 'notif-11',
+    groupSection: 'Ayer',
+    actor: {
+      name: 'beatrizcatano',
+      avatarType: 'red_user',
+    },
+    actionText: 'comentó tu publicación.',
+    timeAgo: '21 h',
+    thumbnailType: 'tracon_promo',
+  },
+]
+
 
 

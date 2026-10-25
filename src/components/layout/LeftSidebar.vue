@@ -72,35 +72,35 @@ const handleSelect = (id: string) => {
       </a>
 
       <!-- Navigation links (minimalist: slim typography, refined spacing, subtle micro-hover) -->
-      <nav class="flex flex-col w-full space-y-0.5">
+      <nav class="flex flex-col w-full space-y-1">
         <button
           v-for="item in navItems"
           :key="item.id"
           type="button"
           @click="handleSelect(item.id)"
-          class="flex items-center gap-4 px-3.5 py-2.5 rounded-xl transition-colors duration-150 group text-left cursor-pointer w-full hover:bg-white/[0.06]"
+          class="flex items-center gap-4 px-3.5 py-2.5 rounded-xl transition-all duration-200 active:scale-[0.98] group text-left cursor-pointer w-full select-none"
           :class="[
             activeNavId === item.id
-              ? 'text-white'
-              : 'text-gray-400 hover:text-gray-100',
+              ? 'bg-white/[0.08] text-white'
+              : 'text-gray-400 hover:text-gray-100 hover:bg-white/[0.04]',
           ]"
         >
           <!-- Icon -->
           <div class="relative flex items-center justify-center shrink-0">
             <component
               :is="getIconComponent(item.icon)"
-              class="w-6 h-6 transition-colors duration-150"
+              class="w-6 h-6 transition-all duration-200"
               :class="[
                 activeNavId === item.id
-                  ? 'text-[#f0254c] fill-current'
-                  : 'text-gray-300 group-hover:text-white',
+                  ? 'text-[#f0254c] fill-current scale-105'
+                  : 'text-gray-300 group-hover:text-white group-hover:scale-105',
               ]"
             />
           </div>
 
           <!-- Label (minimalist, modern weight) -->
           <span
-            class="hidden lg:inline text-[16px] tracking-normal leading-none"
+            class="hidden lg:inline text-[16px] tracking-normal leading-none transition-colors duration-200"
             :class="activeNavId === item.id ? 'font-semibold text-white' : 'font-normal text-gray-300 group-hover:text-white'"
           >
             {{ item.label }}
