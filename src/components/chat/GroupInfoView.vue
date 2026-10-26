@@ -267,7 +267,8 @@ const saveAddMembers = () => {
               <div
                 v-for="member in membersList"
                 :key="member.id"
-                class="p-3 sm:p-3.5 rounded-2xl bg-[#14151f] border border-[#232535]/70 flex items-center justify-between select-text"
+                class="p-3 sm:p-3.5 rounded-2xl bg-[#14151f] border border-[#232535]/70 flex items-center justify-between select-text relative"
+                :class="activeMemberMenuId === member.id ? 'z-30' : 'z-0'"
               >
                 <div class="flex items-center min-w-0 flex-1 select-text">
                   <div class="w-10 h-10 rounded-full bg-[#3d1219] border border-[#79141b]/60 flex items-center justify-center shrink-0 select-none">
