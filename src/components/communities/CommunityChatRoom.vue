@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import {
   ChevronLeft,
   MoreHorizontal,
@@ -26,6 +26,15 @@ const emit = defineEmits<{
 const activeChannel = ref(props.community.activeChannel || 'general')
 const messageText = ref('')
 const messagesList = ref([...props.community.messages])
+const messagesContainer = ref<HTMLElement | null>(null)
+
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  })
+}
 
 // 3-dots dropdown menu state
 const isMenuOpen = ref(false)
@@ -53,6 +62,7 @@ const handleClickOutside = (e: MouseEvent) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  scrollToBottom()
 })
 
 onUnmounted(() => {
@@ -61,23 +71,28 @@ onUnmounted(() => {
 
 const handleSend = () => {
   if (!messageText.value.trim()) return
+  const now = new Date()
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
   messagesList.value.push({
     id: `cm-${Date.now()}`,
     authorName: 'Jeffrey Suárez',
     text: messageText.value.trim(),
     avatarBg: '#f0254c',
+    timestamp: timeStr,
+    isMine: true,
   })
   emit('send-message', messageText.value.trim())
   messageText.value = ''
+  scrollToBottom()
 }
 </script>
 
 <template>
   <main
-    class="flex-1 min-w-0 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 shadow-lg select-none"
+    class="flex-1 min-w-0 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 shadow-lg"
   >
     <!-- Top Header -->
-    <header class="h-16 px-4 sm:px-5 border-b border-[#1f212a] flex items-center justify-between shrink-0 bg-black/90 backdrop-blur-md z-10">
+    <header class="h-16 px-4 sm:px-5 border-b border-[#1f212a] flex items-center justify-between shrink-0 bg-black/90 backdrop-blur-md z-10 select-none">
       <div class="flex items-center gap-3 min-w-0">
         <!-- Back button to return to communities list -->
         <button
@@ -143,7 +158,7 @@ const handleSend = () => {
     </header>
 
     <!-- Channels Sub-tabs Header with Icons (# General / Multimedia / Anuncios) -->
-    <div class="relative flex border-b border-[#15161e] px-2 bg-black/85 backdrop-blur-md shrink-0">
+    <div class="relative flex border-b border-[#15161e] px-2 bg-black/85 backdrop-blur-md shrink-0 select-none">
       <!-- 1. # General with Hash symbol -->
       <button
         type="button"
@@ -187,7 +202,10 @@ const handleSend = () => {
     </div>
 
     <!-- Messages Feed -->
-    <div class="flex-1 overflow-y-auto no-scrollbar p-4 sm:p-6 space-y-4">
+    <div
+      ref="messagesContainer"
+      class="flex-1 overflow-y-auto no-scrollbar p-4 sm:p-6 space-y-3.5 select-text"
+    >
       <template v-for="msg in messagesList" :key="msg.id">
         <!-- Date Header Separator -->
         <div
@@ -197,22 +215,43 @@ const handleSend = () => {
           {{ msg.dateHeader }}
         </div>
 
-        <!-- Group Message Row (Discord-like channel layout) -->
-        <div class="flex items-start gap-3 group hover:bg-white/[0.015] -mx-2 px-2 py-1.5 rounded-xl transition-colors">
+        <!-- My Message Bubble (Right aligned with #79141B, exactly like Chats) -->
+        <div
+          v-if="msg.isMine"
+          class="flex flex-col items-end select-text"
+        >
+          <div
+            class="max-w-[270px] sm:max-w-[290px] px-3.5 py-2 rounded-2xl rounded-br-sm text-sm leading-relaxed bg-[#79141B] text-white select-text cursor-text break-words"
+          >
+            {{ msg.text }}
+          </div>
+          <span
+            v-if="msg.timestamp"
+            class="text-[11px] text-gray-500 mt-1 px-1"
+          >
+            {{ msg.timestamp }}
+          </span>
+        </div>
+
+        <!-- Others' Message Row (Community channel layout on the left) -->
+        <div
+          v-else
+          class="flex items-start gap-3 group hover:bg-white/[0.015] -mx-2 px-2 py-1.5 rounded-xl transition-colors select-text"
+        >
           <!-- User Avatar -->
           <div
-            class="w-10 h-10 rounded-full border border-[#262835] shrink-0 mt-0.5 flex items-center justify-center"
+            class="w-10 h-10 rounded-full border border-[#262835] shrink-0 mt-0.5 flex items-center justify-center select-none"
             :style="{ backgroundColor: msg.avatarBg || '#1a1b24' }"
           >
             <div class="w-3.5 h-3.5 rounded-full bg-white/10" />
           </div>
 
           <!-- Message Content -->
-          <div class="flex-1 min-w-0">
-            <span class="font-bold text-[15px] text-white tracking-wide block">
+          <div class="flex-1 min-w-0 select-text">
+            <span class="font-bold text-[15px] text-white tracking-wide block select-text">
               {{ msg.authorName }}
             </span>
-            <p class="text-[14px] text-gray-200 mt-0.5 leading-relaxed break-words">
+            <p class="text-[14px] text-gray-200 mt-0.5 leading-relaxed break-words select-text cursor-text">
               {{ msg.text }}
             </p>
           </div>
@@ -235,25 +274,24 @@ const handleSend = () => {
           <PlusCircle class="w-6 h-6" />
         </button>
 
-        <!-- Text Input Pill -->
-        <div class="flex-1 bg-transparent border border-[#232532] rounded-full px-4 py-2.5 flex items-center focus-within:border-gray-500 transition-colors">
+        <!-- Text Input Pill with Send Button Inside (matching Chat style) -->
+        <div class="flex-1 bg-[#121319] border border-[#20222e] rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-2 focus-within:border-gray-600 transition-colors">
           <input
             v-model="messageText"
             type="text"
-            placeholder="Escribe un mensaje"
-            class="w-full bg-transparent text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none"
+            placeholder="Escribe un mensaje..."
+            class="flex-1 bg-transparent text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none py-1"
           />
-        </div>
 
-        <!-- Send Button Circle -->
-        <button
-          type="submit"
-          :disabled="!messageText.trim()"
-          class="w-10 h-10 rounded-full bg-[#161822] hover:bg-[#202230] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-[#f0254c] transition-all active:scale-95 cursor-pointer shrink-0 border border-[#262838]"
-          title="Enviar mensaje"
-        >
-          <Send class="w-4 h-4 ml-0.5 text-[#f0254c]" />
-        </button>
+          <button
+            type="submit"
+            :disabled="!messageText.trim()"
+            class="w-8 h-8 rounded-full bg-[#f0254c] hover:bg-[#d9193f] text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shrink-0 flex items-center justify-center shadow-sm"
+            title="Enviar mensaje"
+          >
+            <Send class="w-4 h-4 text-white -translate-x-px translate-y-px" />
+          </button>
+        </div>
       </form>
     </div>
   </main>
