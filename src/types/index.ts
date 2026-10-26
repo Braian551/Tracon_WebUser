@@ -73,6 +73,7 @@ export interface CommunityChannelMessage {
   avatarBg?: string
   text: string
   timestamp?: string
+  isMine?: boolean
 }
 
 export interface CommunityDetail {
@@ -104,6 +105,7 @@ export interface Conversation {
   unreadCount?: number
   isOnline?: boolean
   isTraconOfficial?: boolean
+  isGroup?: boolean
   messages: ChatMessage[]
 }
 

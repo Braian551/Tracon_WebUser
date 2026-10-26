@@ -253,6 +253,7 @@ export const conversationsData: Conversation[] = [
     id: 'equipo-encontrado',
     name: 'Equipo encontrado',
     handle: 'squad_match',
+    isGroup: true,
     lastMessage: 'Braian Andrés Oquendo Durango salió del...',
     timeAgo: 'domingo',
     messages: [

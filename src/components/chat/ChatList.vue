@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Search } from 'lucide-vue-next'
+import { Search, Users } from 'lucide-vue-next'
 import Avatar from '../common/Avatar.vue'
 import ChatUtilityBar from './ChatUtilityBar.vue'
 import CommunityThreeUsersIcon from '../common/CommunityThreeUsersIcon.vue'
 import ChatBubbleSolidIcon from '../common/ChatBubbleSolidIcon.vue'
-import NewChatModal from './NewChatModal.vue'
 import type { Conversation } from '../../types'
 
 interface Props {
@@ -23,12 +22,12 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: 'select-conversation', id: string): void
   (e: 'new-chat'): void
+  (e: 'new-group'): void
   (e: 'change-tab', tab: 'chats' | 'comunidades'): void
   (e: 'click-notifications'): void
 }>()
 
 const searchQuery = ref('')
-const isNewChatModalOpen = ref(false)
 
 const filteredConversations = () => {
   if (!searchQuery.value.trim()) return props.conversations
@@ -42,27 +41,20 @@ const filteredConversations = () => {
 <template>
   <div class="flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden w-full shadow-lg select-none">
     <!-- Header with Chats title and the 3 Action Buttons moved here -->
-    <div class="flex items-center justify-between px-4 sm:px-5 pt-4 pb-3">
+    <div class="flex items-center justify-between px-4 sm:px-5 pt-4 pb-3 relative z-30">
       <h2 class="text-xl font-bold text-white tracking-tight">
         Chats
       </h2>
 
-      <!-- The 3 Action Buttons: Radar, Notifications, Compose -->
+      <!-- The 3 Action Buttons: Radar, Notifications, Compose Dropdown -->
       <ChatUtilityBar
         :is-notifications-active="isNotificationsActive"
         @click-radar="() => {}"
         @click-notifications="emit('click-notifications')"
-        @click-compose="isNewChatModalOpen = true"
+        @new-direct-chat="emit('new-chat')"
+        @new-group="emit('new-group')"
       />
     </div>
-
-    <!-- New Chat / Create Group Modal matching Design -->
-    <NewChatModal
-      :is-open="isNewChatModalOpen"
-      @close="isNewChatModalOpen = false"
-      @new-direct-chat="emit('new-chat')"
-      @new-group="() => {}"
-    />
 
     <!-- Sub-tabs: Chats vs Comunidades with icons -->
     <div class="relative flex border-b border-[#15161e] px-2">
@@ -130,8 +122,15 @@ const filteredConversations = () => {
           class="absolute right-0 top-0 bottom-0 w-[3px] bg-[#f0254c] rounded-l"
         />
 
-        <!-- Avatar -->
+        <!-- Avatar (Group or Individual) -->
+        <div
+          v-if="conv.isGroup || conv.id === 'equipo-encontrado' || conv.id.startsWith('group-')"
+          class="w-10 h-10 rounded-full bg-[#5a0f14] border border-[#79141b] flex items-center justify-center shrink-0 text-white"
+        >
+          <Users class="w-5 h-5 text-white/90" />
+        </div>
         <Avatar
+          v-else
           size="md"
           :is-tracon-official="conv.isTraconOfficial"
         />

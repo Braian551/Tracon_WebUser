@@ -1,0 +1,15 @@
+CHATS:
+
+1- Radar de juego
+
+3- iconos de: mas(comunidad) no esta funcional, este es para mandar imagenes.
+
+4- nuevo chat, y crear grupo
+
+5- crear multimedia y anuncios en el chat de comunidades
+
+6- al hacerle click al nombre del usuario en chats y cominudades podre ver el perfil de cada persona/comunidad
+
+GENERAL:
+
+1- Aplicar shimmer/skeleton para la carga de contenido, esto en todos los apartados de la apgina, ya que es para la carga del contenido
