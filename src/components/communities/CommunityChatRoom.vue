@@ -9,6 +9,8 @@ import {
   Image as ImageIcon,
   Megaphone,
 } from 'lucide-vue-next'
+import CommunityMultimediaView from './CommunityMultimediaView.vue'
+import CommunityAnnouncementsView from './CommunityAnnouncementsView.vue'
 import type { CommunityDetail } from '../../types'
 
 interface Props {
@@ -89,10 +91,10 @@ const handleSend = () => {
 
 <template>
   <main
-    class="flex-1 min-w-0 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 shadow-lg"
+    class="flex-1 min-w-0 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 shadow-lg relative"
   >
     <!-- Top Header -->
-    <header class="h-16 px-4 sm:px-5 border-b border-[#1f212a] flex items-center justify-between shrink-0 bg-black/90 backdrop-blur-md z-10 select-none">
+    <header class="h-16 px-4 sm:px-5 border-b border-[#1f212a] flex items-center justify-between shrink-0 bg-black/90 backdrop-blur-md z-30 select-none relative">
       <div class="flex items-center gap-3 min-w-0">
         <!-- Back button to return to communities list -->
         <button
@@ -116,7 +118,7 @@ const handleSend = () => {
             {{ community.name }}
           </h2>
           <p class="text-xs text-gray-400 truncate mt-0.5">
-            #General · {{ community.membersCount }}
+            {{ activeChannel === 'general' ? '#General' : activeChannel === 'multimedia' ? 'Multimedia' : 'Anuncios' }} · {{ community.membersCount }}
           </p>
         </div>
       </div>
@@ -158,7 +160,7 @@ const handleSend = () => {
     </header>
 
     <!-- Channels Sub-tabs Header with Icons (# General / Multimedia / Anuncios) -->
-    <div class="relative flex border-b border-[#15161e] px-2 bg-black/85 backdrop-blur-md shrink-0 select-none">
+    <div class="relative flex border-b border-[#15161e] px-2 bg-black/85 backdrop-blur-md shrink-0 select-none z-10">
       <!-- 1. # General with Hash symbol -->
       <button
         type="button"
@@ -201,98 +203,160 @@ const handleSend = () => {
       />
     </div>
 
-    <!-- Messages Feed -->
-    <div
-      ref="messagesContainer"
-      class="flex-1 overflow-y-auto no-scrollbar p-4 sm:p-6 space-y-3.5 select-text"
-    >
-      <template v-for="msg in messagesList" :key="msg.id">
-        <!-- Date Header Separator -->
+    <!-- Active Channel Body with Smooth Transition -->
+    <div class="flex-1 overflow-hidden relative flex flex-col">
+      <Transition name="channel-fade" mode="out-in">
+        <!-- 1. GENERAL CHAT -->
         <div
-          v-if="msg.dateHeader"
-          class="text-center text-xs text-gray-500 font-medium my-3 select-none tracking-wide"
+          v-if="activeChannel === 'general'"
+          key="channel-general"
+          class="flex-1 flex flex-col h-full overflow-hidden"
         >
-          {{ msg.dateHeader }}
-        </div>
-
-        <!-- My Message Bubble (Right aligned with #79141B, exactly like Chats) -->
-        <div
-          v-if="msg.isMine"
-          class="flex flex-col items-end select-text"
-        >
+          <!-- Messages Feed -->
           <div
-            class="max-w-[270px] sm:max-w-[290px] px-3.5 py-2 rounded-2xl rounded-br-sm text-sm leading-relaxed bg-[#79141B] text-white select-text cursor-text break-words"
+            ref="messagesContainer"
+            class="flex-1 overflow-y-auto no-scrollbar p-4 sm:p-6 space-y-3.5 select-text"
           >
-            {{ msg.text }}
+            <template v-for="msg in messagesList" :key="msg.id">
+              <!-- Date Header Separator -->
+              <div
+                v-if="msg.dateHeader"
+                class="text-center text-xs text-gray-500 font-medium my-3 select-none tracking-wide"
+              >
+                {{ msg.dateHeader }}
+              </div>
+
+              <!-- My Message Bubble (Right aligned with #79141B, exactly like Chats) -->
+              <div
+                v-if="msg.isMine"
+                class="flex flex-col items-end select-text"
+              >
+                <div
+                  class="max-w-[270px] sm:max-w-[290px] px-3.5 py-2 rounded-2xl rounded-br-sm text-sm leading-relaxed bg-[#79141B] text-white select-text cursor-text break-words"
+                >
+                  {{ msg.text }}
+                </div>
+                <span
+                  v-if="msg.timestamp"
+                  class="text-[11px] text-gray-500 mt-1 px-1"
+                >
+                  {{ msg.timestamp }}
+                </span>
+              </div>
+
+              <!-- Others' Message Row (Community channel layout on the left) -->
+              <div
+                v-else
+                class="flex items-start gap-3 group hover:bg-white/[0.015] -mx-2 px-2 py-1.5 rounded-xl transition-colors select-text"
+              >
+                <div
+                  class="w-10 h-10 rounded-full border border-[#262835] shrink-0 mt-0.5 flex items-center justify-center select-none"
+                  :style="{ backgroundColor: msg.avatarBg || '#1a1b24' }"
+                >
+                  <div class="w-3.5 h-3.5 rounded-full bg-white/10" />
+                </div>
+
+                <div class="flex-1 min-w-0 select-text">
+                  <span class="font-bold text-[15px] text-white tracking-wide block select-text">
+                    {{ msg.authorName }}
+                  </span>
+                  <p class="text-[14px] text-gray-200 mt-0.5 leading-relaxed break-words select-text cursor-text">
+                    {{ msg.text }}
+                  </p>
+                </div>
+              </div>
+            </template>
           </div>
-          <span
-            v-if="msg.timestamp"
-            class="text-[11px] text-gray-500 mt-1 px-1"
-          >
-            {{ msg.timestamp }}
-          </span>
+
+          <!-- Bottom Input Bar -->
+          <div class="p-4 border-t border-[#1f212a] bg-black shrink-0">
+            <form
+              @submit.prevent="handleSend"
+              class="flex items-center gap-3"
+            >
+              <button
+                type="button"
+                @click="activeChannel = 'multimedia'"
+                class="text-gray-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                title="Adjuntar multimedia"
+              >
+                <PlusCircle class="w-6 h-6" />
+              </button>
+
+              <div class="flex-1 bg-[#121319] border border-[#20222e] rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-2 focus-within:border-gray-600 transition-colors">
+                <input
+                  v-model="messageText"
+                  type="text"
+                  placeholder="Escribe un mensaje..."
+                  class="flex-1 bg-transparent text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none py-1"
+                />
+
+                <button
+                  type="submit"
+                  :disabled="!messageText.trim()"
+                  class="w-8 h-8 rounded-full bg-[#f0254c] hover:bg-[#d9193f] text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shrink-0 flex items-center justify-center shadow-sm"
+                  title="Enviar mensaje"
+                >
+                  <Send class="w-4 h-4 text-white -translate-x-px translate-y-px" />
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
-        <!-- Others' Message Row (Community channel layout on the left) -->
-        <div
-          v-else
-          class="flex items-start gap-3 group hover:bg-white/[0.015] -mx-2 px-2 py-1.5 rounded-xl transition-colors select-text"
-        >
-          <!-- User Avatar -->
-          <div
-            class="w-10 h-10 rounded-full border border-[#262835] shrink-0 mt-0.5 flex items-center justify-center select-none"
-            :style="{ backgroundColor: msg.avatarBg || '#1a1b24' }"
-          >
-            <div class="w-3.5 h-3.5 rounded-full bg-white/10" />
-          </div>
+        <!-- 2. MULTIMEDIA VIEW -->
+        <CommunityMultimediaView
+          v-else-if="activeChannel === 'multimedia'"
+          key="channel-multimedia"
+          :community-name="community.name"
+        />
 
-          <!-- Message Content -->
-          <div class="flex-1 min-w-0 select-text">
-            <span class="font-bold text-[15px] text-white tracking-wide block select-text">
-              {{ msg.authorName }}
-            </span>
-            <p class="text-[14px] text-gray-200 mt-0.5 leading-relaxed break-words select-text cursor-text">
-              {{ msg.text }}
-            </p>
-          </div>
-        </div>
-      </template>
-    </div>
-
-    <!-- Bottom Input Bar -->
-    <div class="p-4 border-t border-[#1f212a] bg-black shrink-0">
-      <form
-        @submit.prevent="handleSend"
-        class="flex items-center gap-3"
-      >
-        <!-- Plus Action Button -->
-        <button
-          type="button"
-          class="text-gray-400 hover:text-white transition-colors cursor-pointer shrink-0"
-          title="Adjuntar multimedia"
-        >
-          <PlusCircle class="w-6 h-6" />
-        </button>
-
-        <!-- Text Input Pill with Send Button Inside (matching Chat style) -->
-        <div class="flex-1 bg-[#121319] border border-[#20222e] rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-2 focus-within:border-gray-600 transition-colors">
-          <input
-            v-model="messageText"
-            type="text"
-            placeholder="Escribe un mensaje..."
-            class="flex-1 bg-transparent text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none py-1"
-          />
-
-          <button
-            type="submit"
-            :disabled="!messageText.trim()"
-            class="w-8 h-8 rounded-full bg-[#f0254c] hover:bg-[#d9193f] text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shrink-0 flex items-center justify-center shadow-sm"
-            title="Enviar mensaje"
-          >
-            <Send class="w-4 h-4 text-white -translate-x-px translate-y-px" />
-          </button>
-        </div>
-      </form>
+        <!-- 3. ANUNCIOS VIEW -->
+        <CommunityAnnouncementsView
+          v-else-if="activeChannel === 'anuncios'"
+          key="channel-anuncios"
+          :community-name="community.name"
+        />
+      </Transition>
     </div>
   </main>
 </template>
+
+<style scoped>
+.channel-fade-enter-active,
+.channel-fade-leave-active {
+  transition: opacity 240ms cubic-bezier(0.23, 1, 0.32, 1), transform 240ms cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: opacity, transform;
+}
+
+.channel-fade-leave-active {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.channel-fade-enter-active {
+  z-index: 10;
+}
+
+.channel-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px) scale(0.995);
+}
+
+.channel-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.995);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .channel-fade-enter-active,
+  .channel-fade-leave-active {
+    transition: opacity 150ms ease;
+    transform: none;
+  }
+}
+</style>
