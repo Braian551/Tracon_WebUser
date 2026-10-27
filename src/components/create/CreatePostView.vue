@@ -3,6 +3,7 @@ import { ref, computed, nextTick } from 'vue'
 import CreatePollView from './CreatePollView.vue'
 import MentionPickerView from './MentionPickerView.vue'
 import GameSelectorView from '../common/GameSelectorView.vue'
+import TrakRecorderView from './TrakRecorderView.vue'
 import {
   X,
   MapPin,
@@ -17,8 +18,6 @@ import {
   Plus,
   Trash2,
   Check,
-  Clock,
-  PlayCircle,
 } from 'lucide-vue-next'
 import type { Post, PollData } from '../../types'
 
@@ -76,15 +75,6 @@ const attachedPoll = ref<PollData | null>(null)
 // Mention state
 const isMentioning = ref(false)
 
-// Trak form state
-const trakGame = ref('Specimen Zero')
-const trakTitle = ref('')
-const trakCategory = ref<'Supervivencia' | 'Speedrun' | 'Sin daño' | 'Récord'>('Supervivencia')
-const trakRecord = ref('')
-const trakDifficulty = ref<'Fácil' | 'Normal' | 'Difícil' | 'Pesadilla'>('Pesadilla')
-const trakNotes = ref('')
-const trakEvidence = ref<string | null>(null)
-
 // Game selector state
 const isSelectingGame = ref(false)
 
@@ -102,19 +92,15 @@ const popularLocations = [
 
 // Can publish computation
 const canPublish = computed(() => {
-  if (activeTab.value === 'publicacion') {
-    if (isChallengeActive.value) {
-      return challengeTitle.value.trim().length > 0 && textContent.value.trim().length > 0
-    }
-    return (
-      (attachedPoll.value !== null && !!attachedPoll.value.question) ||
-      textContent.value.trim().length > 0 ||
-      attachedImages.value.length > 0 ||
-      attachedVideoName.value !== null
-    )
-  } else {
-    return trakTitle.value.trim().length > 0 && trakGame.value.trim().length > 0
+  if (isChallengeActive.value) {
+    return challengeTitle.value.trim().length > 0 && textContent.value.trim().length > 0
   }
+  return (
+    (attachedPoll.value !== null && !!attachedPoll.value.question) ||
+    textContent.value.trim().length > 0 ||
+    attachedImages.value.length > 0 ||
+    attachedVideoName.value !== null
+  )
 })
 
 // Handlers for media
@@ -231,11 +217,7 @@ const handleMentionSelected = (handle: string) => {
 }
 
 const handleGameSelected = (gameName: string | null) => {
-  if (activeTab.value === 'publicacion') {
-    selectedGame.value = gameName
-  } else {
-    trakGame.value = gameName || 'Specimen Zero'
-  }
+  selectedGame.value = gameName
   isSelectingGame.value = false
 }
 
@@ -248,68 +230,41 @@ const selectLocation = (loc: string) => {
 const handlePublish = () => {
   if (!canPublish.value) return
 
-  if (activeTab.value === 'publicacion') {
-    const publishedContent = attachedPoll.value?.question
-      ? attachedPoll.value.question
-      : textContent.value.trim()
+  const publishedContent = attachedPoll.value?.question
+    ? attachedPoll.value.question
+    : textContent.value.trim()
 
-    const newPost: Post = {
-      id: `post-${Date.now()}`,
-      author: {
-        name: props.userName,
-        handle: props.userHandle,
-      },
-      timeAgo: 'ahora',
-      content: publishedContent,
-      gameTag: selectedGame.value || undefined,
-      locationTag: selectedLocation.value || undefined,
-      challengeTag: isChallengeActive.value && challengeTitle.value.trim() ? challengeTitle.value.trim() : undefined,
-      challengeData: isChallengeActive.value && challengeTitle.value.trim() ? {
-        title: challengeTitle.value.trim(),
-        rules: textContent.value.trim(),
-      } : undefined,
-      mediaUrl: attachedImages.value[0] || undefined,
-      poll: attachedPoll.value || undefined,
-      stats: {
-        comments: 0,
-        likes: 0,
-        impulses: 0,
-        isLiked: false,
-        isImpulsed: false,
-        isSaved: false,
-      },
-    }
-    emit('published', newPost)
-  } else {
-    // Publish Trak
-    const newPost: Post = {
-      id: `post-trak-${Date.now()}`,
-      author: {
-        name: props.userName,
-        handle: props.userHandle,
-      },
-      timeAgo: 'ahora',
-      content: trakNotes.value.trim() || `He completado una nueva partida en ${trakGame.value}: ${trakTitle.value}`,
-      gameTag: trakGame.value,
-      trakData: {
-        title: trakTitle.value,
-        game: trakGame.value,
-        category: trakCategory.value,
-        record: trakRecord.value || undefined,
-        difficulty: trakDifficulty.value,
-      },
-      mediaUrl: trakEvidence.value || undefined,
-      stats: {
-        comments: 0,
-        likes: 0,
-        impulses: 0,
-        isLiked: false,
-        isImpulsed: false,
-        isSaved: false,
-      },
-    }
-    emit('published', newPost)
+  const newPost: Post = {
+    id: `post-${Date.now()}`,
+    author: {
+      name: props.userName,
+      handle: props.userHandle,
+    },
+    timeAgo: 'ahora',
+    content: publishedContent,
+    gameTag: selectedGame.value || undefined,
+    locationTag: selectedLocation.value || undefined,
+    challengeTag: isChallengeActive.value && challengeTitle.value.trim() ? challengeTitle.value.trim() : undefined,
+    challengeData: isChallengeActive.value && challengeTitle.value.trim() ? {
+      title: challengeTitle.value.trim(),
+      rules: textContent.value.trim(),
+    } : undefined,
+    mediaUrl: attachedImages.value[0] || undefined,
+    poll: attachedPoll.value || undefined,
+    stats: {
+      comments: 0,
+      likes: 0,
+      impulses: 0,
+      isLiked: false,
+      isImpulsed: false,
+      isSaved: false,
+    },
   }
+  emit('published', newPost)
+}
+
+const handleTrakPublished = (post: Post) => {
+  emit('published', post)
 }
 </script>
 
@@ -337,9 +292,19 @@ const handlePublish = () => {
       <GameSelectorView
         v-else-if="isSelectingGame"
         key="game-selector-view"
-        :initial-selected-game="activeTab === 'publicacion' ? selectedGame : trakGame"
+        :initial-selected-game="selectedGame"
         @cancel="isSelectingGame = false"
         @select="handleGameSelected"
+      />
+
+      <TrakRecorderView
+        v-else-if="activeTab === 'trak'"
+        key="trak-recorder-view"
+        :user-name="props.userName"
+        :user-handle="props.userHandle"
+        @close="emit('close')"
+        @switch-tab="activeTab = $event"
+        @published="handleTrakPublished"
       />
 
       <div
@@ -378,8 +343,7 @@ const handlePublish = () => {
         <button
           type="button"
           @click="activeTab = 'publicacion'"
-          class="relative flex-1 py-3.5 text-center text-sm font-semibold transition-colors duration-200 cursor-pointer"
-          :class="activeTab === 'publicacion' ? 'text-white' : 'text-gray-400 hover:text-gray-200'"
+          class="relative flex-1 py-3.5 text-center text-sm font-semibold transition-colors duration-200 cursor-pointer text-white"
         >
           <span>Publicación</span>
         </button>
@@ -387,31 +351,21 @@ const handlePublish = () => {
         <button
           type="button"
           @click="activeTab = 'trak'"
-          class="relative flex-1 py-3.5 text-center text-sm font-semibold transition-colors duration-200 cursor-pointer"
-          :class="activeTab === 'trak' ? 'text-white' : 'text-gray-400 hover:text-gray-200'"
+          class="relative flex-1 py-3.5 text-center text-sm font-semibold transition-colors duration-200 cursor-pointer text-gray-400 hover:text-gray-200"
         >
           <span>Trak</span>
         </button>
 
         <!-- Smooth sliding active underline indicator -->
         <span
-          class="absolute bottom-0 h-[3px] w-14 rounded-full bg-[#f0254c] shadow-[0_0_10px_rgba(240,37,76,0.6)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] -translate-x-1/2 pointer-events-none"
-          :style="{
-            left: activeTab === 'publicacion' ? '25%' : '75%'
-          }"
+          class="absolute bottom-0 h-[3px] w-14 rounded-full bg-[#f0254c] shadow-[0_0_10px_rgba(240,37,76,0.6)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] -translate-x-1/2 pointer-events-none left-1/4"
         />
       </nav>
     </header>
 
-    <!-- Content Area: Tabs with smooth transition -->
+    <!-- Content Area: Publicación -->
     <div class="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-      <Transition name="tab-fade" mode="out-in">
-        <!-- TAB 1: PUBLICACIÓN -->
-        <div
-          v-if="activeTab === 'publicacion'"
-          key="tab-publicacion"
-          class="flex-1 flex flex-col min-h-0 overflow-hidden"
-        >
+      <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
           <!-- Upper Author & Features Bar -->
           <div class="flex items-center justify-between px-5 pt-4 pb-2">
         <!-- Left: User Avatar + Crear reto pill -->
@@ -664,230 +618,73 @@ const handlePublish = () => {
           {{ attachedPoll ? `${attachedPoll.question?.length || 0}/280` : `${textContent.length}/5000` }}
         </div>
       </div>
-      </div>
-
-      <!-- TAB 2: TRAK (Gaming Challenge & Run Logger) -->
-      <div
-        v-else
-        key="tab-trak"
-        class="flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar px-6 py-5 space-y-5"
-      >
-        <!-- Trak Intro Banner -->
-        <div class="p-4 rounded-2xl bg-gradient-to-r from-[#201017] via-[#15121b] to-black border border-[#79141b]/50">
-          <div class="flex items-center gap-3">
-            <div class="p-2.5 rounded-xl bg-[#f0254c]/15 text-[#f0254c]">
-              <PlayCircle class="w-6 h-6" />
-            </div>
-            <div>
-              <h3 class="text-base font-bold text-white">Registrar nuevo Trak de juego</h3>
-              <p class="text-xs text-gray-400 mt-0.5">
-                Comparte tus récords, speedruns o desafíos completados con la comunidad de Tracon.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Game Selector for Trak -->
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-            Videojuego
-          </label>
-          <div
-            @click="isSelectingGame = true"
-            class="flex items-center justify-between p-3.5 rounded-xl bg-[#13141c] border border-[#232532] hover:border-[#f0254c]/50 transition-colors cursor-pointer"
-          >
-            <div class="flex items-center gap-3">
-              <Gamepad2 class="w-5 h-5 text-[#f0254c]" />
-              <span class="text-sm font-semibold text-white">{{ trakGame }}</span>
-            </div>
-            <span class="text-xs text-gray-400 font-medium">Cambiar</span>
-          </div>
-        </div>
-
-        <!-- Trak Title / Objective -->
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-            Título de la hazaña o reto
-          </label>
-          <input
-            v-model="trakTitle"
-            type="text"
-            placeholder="Ej: Escape de Pesadilla sin linterna en solitario"
-            class="w-full px-4 py-3 rounded-xl bg-[#13141c] border border-[#232532] text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#f0254c]"
-          />
-        </div>
-
-        <!-- Category & Difficulty Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <!-- Category -->
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-              Modalidad
-            </label>
-            <div class="grid grid-cols-2 gap-2">
-              <button
-                v-for="cat in (['Supervivencia', 'Speedrun', 'Sin daño', 'Récord'] as const)"
-                :key="cat"
-                type="button"
-                @click="trakCategory = cat"
-                class="py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-center"
-                :class="
-                  trakCategory === cat
-                    ? 'bg-[#f0254c]/20 border-[#f0254c] text-white shadow-sm'
-                    : 'bg-[#13141c] border-[#232532] text-gray-400 hover:text-white'
-                "
-              >
-                {{ cat }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Difficulty -->
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-              Dificultad
-            </label>
-            <div class="grid grid-cols-2 gap-2">
-              <button
-                v-for="diff in (['Fácil', 'Normal', 'Difícil', 'Pesadilla'] as const)"
-                :key="diff"
-                type="button"
-                @click="trakDifficulty = diff"
-                class="py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-center"
-                :class="
-                  trakDifficulty === diff
-                    ? 'bg-[#79141b]/40 border-[#f0254c] text-white'
-                    : 'bg-[#13141c] border-[#232532] text-gray-400 hover:text-white'
-                "
-              >
-                {{ diff }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Record / Time and Proof -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-              Tiempo o Puntuación (opcional)
-            </label>
-            <div class="relative">
-              <Clock class="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
-              <input
-                v-model="trakRecord"
-                type="text"
-                placeholder="Ej: 11m 45s o 25,400 pts"
-                class="w-full pl-10 pr-4 py-3 rounded-xl bg-[#13141c] border border-[#232532] text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#f0254c]"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-              Evidencia / Captura (opcional)
-            </label>
-            <button
-              type="button"
-              @click="triggerImagePicker"
-              class="w-full py-3 px-4 rounded-xl bg-[#13141c] border border-dashed border-[#2b2d38] hover:border-[#f0254c] text-gray-400 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              <ImageIcon class="w-4 h-4 text-[#f0254c]" />
-              <span>{{ attachedImages.length > 0 ? `${attachedImages.length} captura(s) adjunta(s)` : 'Subir captura o clip' }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Story / Strategy Notes -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <label class="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Estrategia o anécdota de la partida
-            </label>
-            <span class="text-xs text-gray-500 font-mono">{{ trakNotes.length }}/5000</span>
-          </div>
-          <textarea
-            v-model="trakNotes"
-            maxlength="5000"
-            rows="4"
-            placeholder="¿Cómo lograste este reto? ¿Qué táctica usaste para escapar?"
-            class="w-full p-4 rounded-xl bg-[#13141c] border border-[#232532] text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#f0254c] resize-none"
-          />
-        </div>
-      </div>
-      </Transition>
     </div>
+  </div>
 
     <!-- Bottom Action Bar (Docked at bottom) -->
     <footer class="flex items-center justify-between px-5 sm:px-6 py-3 border-t border-[#181922] bg-black/80 backdrop-blur-md z-20">
       <!-- Left: Media Tool Icons + Hashtag & Mention -->
       <div class="flex items-center gap-5">
-        <template v-if="activeTab === 'publicacion'">
-          <!-- Multimedia icons -->
-          <div class="flex items-center gap-5">
-            <button
-              type="button"
-              @click="triggerImagePicker"
-              class="text-gray-400 hover:text-[#f0254c] transition-colors cursor-pointer"
-              title="Añadir imágenes"
-            >
-              <ImageIcon class="w-5 h-5" />
-            </button>
+        <!-- Multimedia icons -->
+        <div class="flex items-center gap-5">
+          <button
+            type="button"
+            @click="triggerImagePicker"
+            class="text-gray-400 hover:text-[#f0254c] transition-colors cursor-pointer"
+            title="Añadir imágenes"
+          >
+            <ImageIcon class="w-5 h-5" />
+          </button>
 
-            <button
-              type="button"
-              @click="triggerVideoPicker"
-              class="text-gray-400 hover:text-[#f0254c] transition-colors cursor-pointer"
-              title="Añadir video"
-            >
-              <Video class="w-5 h-5" />
-            </button>
+          <button
+            type="button"
+            @click="triggerVideoPicker"
+            class="text-gray-400 hover:text-[#f0254c] transition-colors cursor-pointer"
+            title="Añadir video"
+          >
+            <Video class="w-5 h-5" />
+          </button>
 
-            <button
-              type="button"
-              @click="openPollCreator"
-              :disabled="isChallengeActive"
-              class="transition-colors"
-              :class="[
-                isChallengeActive
-                  ? 'opacity-30 cursor-not-allowed text-gray-500 hover:text-gray-500'
-                  : attachedPoll
-                    ? 'text-[#f0254c] cursor-pointer'
-                    : 'text-gray-400 hover:text-[#f0254c] cursor-pointer'
-              ]"
-              :title="isChallengeActive ? 'No disponible al crear un reto' : 'Crear encuesta'"
-            >
-              <BarChart2 class="w-5 h-5" />
-            </button>
-          </div>
+          <button
+            type="button"
+            @click="openPollCreator"
+            :disabled="isChallengeActive"
+            class="transition-colors"
+            :class="[
+              isChallengeActive
+                ? 'opacity-30 cursor-not-allowed text-gray-500 hover:text-gray-500'
+                : attachedPoll
+                  ? 'text-[#f0254c] cursor-pointer'
+                  : 'text-gray-400 hover:text-[#f0254c] cursor-pointer'
+            ]"
+            :title="isChallengeActive ? 'No disponible al crear un reto' : 'Crear encuesta'"
+          >
+            <BarChart2 class="w-5 h-5" />
+          </button>
+        </div>
 
-          <div class="h-5 w-px bg-[#232532]" />
+        <div class="h-5 w-px bg-[#232532]" />
 
-          <!-- Hashtag & Mention -->
-          <div class="flex items-center gap-5">
-            <button
-              type="button"
-              @click="handleHashClick"
-              class="text-gray-400 hover:text-[#f0254c] transition-colors cursor-pointer"
-              title="Añadir hashtag (#)"
-            >
-              <Hash class="w-5 h-5" />
-            </button>
+        <!-- Hashtag & Mention -->
+        <div class="flex items-center gap-5">
+          <button
+            type="button"
+            @click="handleHashClick"
+            class="text-gray-400 hover:text-[#f0254c] transition-colors cursor-pointer"
+            title="Añadir hashtag (#)"
+          >
+            <Hash class="w-5 h-5" />
+          </button>
 
-            <button
-              type="button"
-              @click="handleAtClick"
-              class="text-gray-400 hover:text-[#f0254c] transition-colors cursor-pointer"
-              title="Mencionar jugador (@)"
-            >
-              <AtSign class="w-5 h-5" />
-            </button>
-          </div>
-        </template>
-
-        <template v-else>
-          <span class="text-xs text-gray-400">Completa los datos de tu run para publicar el Trak</span>
-        </template>
+          <button
+            type="button"
+            @click="handleAtClick"
+            class="text-gray-400 hover:text-[#f0254c] transition-colors cursor-pointer"
+            title="Mencionar jugador (@)"
+          >
+            <AtSign class="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <!-- Right: Publicar Button (same styling as Crear in comunidades) -->
@@ -899,7 +696,7 @@ const handlePublish = () => {
           class="px-5 py-2.5 rounded-full bg-[#f0254c] hover:bg-[#d9193f] text-white text-sm font-bold shadow-[0_4px_20px_rgba(240,37,76,0.4)] flex items-center gap-1.5 transition-all duration-200 active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#f0254c]"
         >
           <Plus class="w-4 h-4" />
-          <span>{{ activeTab === 'publicacion' ? 'Publicar' : 'Publicar Trak' }}</span>
+          <span>Publicar</span>
         </button>
       </div>
     </footer>
