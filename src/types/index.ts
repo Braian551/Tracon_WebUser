@@ -79,10 +79,20 @@ export interface CommunityChannelMessage {
 export interface CommunityDetail {
   id: string
   name: string
+  handle?: string
   gameSubtitle: string
   membersCount: string
   activeChannel: string
-  channels: { id: string; name: string; unreadBadge?: number }[]
+  isVerified?: boolean
+  description?: string
+  rules?: string
+  tags?: string[]
+  country?: string
+  flag?: string
+  language?: string
+  bannerUrl?: string
+  avatarUrl?: string
+  channels: { id: string; name: string; unreadBadge?: number; subtitle?: string }[]
   messages: CommunityChannelMessage[]
 }
 

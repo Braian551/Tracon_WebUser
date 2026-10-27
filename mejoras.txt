@@ -2,9 +2,9 @@ CHATS:
 
 1- Radar de juego
 
-2- iconos de: mas(comunidad) no esta funcional, este es para mandar imágenes.
+2- iconos de: mas(comunidad) no esta funcional, este es para mandar imágenes a la comunidad.
 
-3- al hacerle click al nombre del usuario en chats y comunidades podre ver el perfil de cada persona/comunidad
+3- al hacerle click al nombre del usuario en chats y en comunidades podre ver el perfil de cada persona/comunidad
 
 GENERAL:
 
