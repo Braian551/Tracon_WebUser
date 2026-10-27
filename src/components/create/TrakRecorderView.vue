@@ -19,14 +19,15 @@ import {
   Type,
   Send,
   Gamepad2,
-  VolumeX,
   Maximize2,
   Minimize2,
   Move,
   Trash2,
   Check,
   Play,
+  Bookmark,
 } from 'lucide-vue-next'
+import SearchInput from '../common/SearchInput.vue'
 import type { Post } from '../../types'
 
 interface Props {
@@ -114,6 +115,136 @@ const availableColors = [
 
 // Thumbnail in View B metadata form
 const metadataThumbnailVideoRef = ref<HTMLVideoElement | null>(null)
+
+// Sound & Music Picker state (matching media_1793138673094_459bbb6d.png & media_1793138682409_c92fab3e.png)
+interface SoundTrack {
+  id: string
+  title: string
+  creator: string
+  duration: string
+  usageCount: string
+  category: 'para_ti' | 'tendencias' | 'guardada' | 'audio_original'
+  isBookmarked: boolean
+  avatarUrl: string
+}
+
+const isEditingSound = ref(false)
+const isPickingMusic = ref(false)
+const musicSearchQuery = ref('')
+const activeSoundTab = ref<'para_ti' | 'tendencias' | 'guardada' | 'audio_original'>('para_ti')
+const originalAudioVolume = ref(100)
+const musicAudioVolume = ref(100)
+const selectedMusicTrack = ref<SoundTrack | null>(null)
+
+const soundTracks = ref<SoundTrack[]>([
+  {
+    id: 'st-1',
+    title: 'Audio original',
+    creator: 'braianoquendurango',
+    duration: '1:12',
+    usageCount: '1 Trak',
+    category: 'para_ti',
+    isBookmarked: false,
+    avatarUrl: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=120&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'st-2',
+    title: 'Audio original',
+    creator: 'braianoquen_52a1ae60',
+    duration: '1:00',
+    usageCount: '1 Trak',
+    category: 'para_ti',
+    isBookmarked: false,
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'st-3',
+    title: 'Terror Ambience',
+    creator: 'braianoquen_52a1ae60',
+    duration: '0:14',
+    usageCount: '0 Traks',
+    category: 'tendencias',
+    isBookmarked: true,
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'st-4',
+    title: 'Gaming Phonk Drill',
+    creator: 'braianoquendurango',
+    duration: '0:30',
+    usageCount: '12 Traks',
+    category: 'tendencias',
+    isBookmarked: false,
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'st-5',
+    title: 'Night Horror Tension',
+    creator: 'braianoquendurango',
+    duration: '0:48',
+    usageCount: '5 Traks',
+    category: 'para_ti',
+    isBookmarked: false,
+    avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'st-6',
+    title: 'Specimen Zero Escape',
+    creator: 'braianoquendurango',
+    duration: '0:30',
+    usageCount: '3 Traks',
+    category: 'audio_original',
+    isBookmarked: false,
+    avatarUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=120&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'st-7',
+    title: 'Dark Whispers',
+    creator: 'braianoquendurango',
+    duration: '0:48',
+    usageCount: '0 Traks',
+    category: 'guardada',
+    isBookmarked: true,
+    avatarUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=120&auto=format&fit=crop&q=80',
+  },
+])
+
+const filteredSoundTracks = computed(() => {
+  return soundTracks.value.filter((track) => {
+    if (musicSearchQuery.value.trim()) {
+      const q = musicSearchQuery.value.toLowerCase()
+      const match = track.title.toLowerCase().includes(q) || track.creator.toLowerCase().includes(q)
+      if (!match) return false
+    }
+    if (activeSoundTab.value === 'guardada') return track.isBookmarked
+    if (activeSoundTab.value === 'audio_original') return track.category === 'audio_original' || track.title.includes('Audio original')
+    if (activeSoundTab.value === 'tendencias') return track.category === 'tendencias'
+    return true
+  })
+})
+
+const handleOriginalVolumeChange = (e: Event) => {
+  const val = Number((e.target as HTMLInputElement).value)
+  originalAudioVolume.value = val
+  if (editorVideoRef.value) {
+    editorVideoRef.value.volume = val / 100
+    editorVideoRef.value.muted = val === 0
+  }
+}
+
+const selectMusicTrack = (track: SoundTrack | null) => {
+  selectedMusicTrack.value = track
+  isPickingMusic.value = false
+}
+
+const removeMusicTrack = () => {
+  selectedMusicTrack.value = null
+}
+
+const toggleBookmarkTrack = (track: SoundTrack, e: Event) => {
+  e.stopPropagation()
+  track.isBookmarked = !track.isBookmarked
+}
 
 // Fit mode: 'contain' (sin cortes, video completo) | 'cover' (rellenar marco)
 const fitMode = ref<'contain' | 'cover'>('contain')
@@ -343,6 +474,8 @@ const resetRecordedMedia = () => {
   showMetadataView.value = false
   showCoverSelector.value = false
   isEditingTextModal.value = false
+  isEditingSound.value = false
+  isPickingMusic.value = false
   videoTextOverlay.value = ''
   selectedCoverTime.value = 0
   tempCoverTime.value = 0
@@ -397,10 +530,7 @@ const handleToggleSpeed = () => {
 }
 
 const handleToggleSound = () => {
-  isSoundMuted.value = !isSoundMuted.value
-  if (editorVideoRef.value) {
-    editorVideoRef.value.muted = isSoundMuted.value
-  }
+  isEditingSound.value = !isEditingSound.value
 }
 
 const handleToggleText = () => {
@@ -820,6 +950,175 @@ onUnmounted(() => {
     </template>
 
     <!-- ======================================================== -->
+    <!-- VIEW E: ELEGIR SONIDO (Dedicated full apartado matching GameSelectorView) -->
+    <!-- ======================================================== -->
+    <template v-else-if="recordedMedia && isPickingMusic">
+      <!-- 1. Top Bar: Back Arrow + Centered "Elegir sonido" -->
+      <header class="px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between shrink-0 bg-black/95 backdrop-blur-md z-10 border-b border-[#1f212a]">
+        <button
+          type="button"
+          @click="isPickingMusic = false"
+          class="p-2 -ml-2 rounded-full text-white hover:bg-white/10 active:scale-95 transition-all duration-150 cursor-pointer flex items-center justify-center"
+          title="Volver a edición"
+        >
+          <ArrowLeft class="w-6 h-6 stroke-[2.5]" />
+        </button>
+
+        <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight text-center">
+          Elegir sonido
+        </h2>
+
+        <div class="w-8" />
+      </header>
+
+      <!-- 2. Main Full Apartado Content -->
+      <div class="flex-1 overflow-y-auto px-5 sm:px-7 py-4 flex flex-col no-scrollbar select-none bg-black">
+        <div class="space-y-4 max-w-2xl mx-auto w-full">
+          <!-- Standard Gray Search Bar matching GameSelectorView & SearchInput -->
+          <div>
+            <SearchInput
+              v-model="musicSearchQuery"
+              placeholder="Buscar canciones, sonidos o creadores"
+            />
+          </div>
+
+          <!-- Filter Category Pills: Para ti | Tendencias | Guardada | Audio original -->
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0 py-1">
+            <button
+              type="button"
+              @click="activeSoundTab = 'para_ti'"
+              class="px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5"
+              :class="activeSoundTab === 'para_ti' ? 'bg-[#b91035] text-white shadow-sm' : 'bg-[#14151e] border border-[#222433] text-gray-300 hover:text-white hover:border-white/20'"
+            >
+              <Check v-if="activeSoundTab === 'para_ti'" class="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Para ti</span>
+            </button>
+
+            <button
+              type="button"
+              @click="activeSoundTab = 'tendencias'"
+              class="px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5"
+              :class="activeSoundTab === 'tendencias' ? 'bg-[#b91035] text-white shadow-sm' : 'bg-[#14151e] border border-[#222433] text-gray-300 hover:text-white hover:border-white/20'"
+            >
+              <Check v-if="activeSoundTab === 'tendencias'" class="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Tendencias</span>
+            </button>
+
+            <button
+              type="button"
+              @click="activeSoundTab = 'guardada'"
+              class="px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5"
+              :class="activeSoundTab === 'guardada' ? 'bg-[#b91035] text-white shadow-sm' : 'bg-[#14151e] border border-[#222433] text-gray-300 hover:text-white hover:border-white/20'"
+            >
+              <Check v-if="activeSoundTab === 'guardada'" class="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Guardada</span>
+            </button>
+
+            <button
+              type="button"
+              @click="activeSoundTab = 'audio_original'"
+              class="px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5"
+              :class="activeSoundTab === 'audio_original' ? 'bg-[#b91035] text-white shadow-sm' : 'bg-[#14151e] border border-[#222433] text-gray-300 hover:text-white hover:border-white/20'"
+            >
+              <Check v-if="activeSoundTab === 'audio_original'" class="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Audio original</span>
+            </button>
+          </div>
+
+          <!-- Option: Solo audio original del video (Sin música añadida) -->
+          <div
+            @click="selectMusicTrack(null)"
+            class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-white/[0.04] transition-colors cursor-pointer group"
+            :class="!selectedMusicTrack ? 'bg-white/[0.03]' : ''"
+          >
+            <div class="flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-full bg-[#70081a] border border-[#a8142b]/40 flex items-center justify-center shrink-0">
+                <Music class="w-5 h-5 text-white stroke-[2]" />
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-white">Solo audio original</p>
+                <p class="text-xs text-gray-400">Conservar el sonido capturado sin música superpuesta</p>
+              </div>
+            </div>
+            <div
+              v-if="!selectedMusicTrack"
+              class="w-5 h-5 rounded-full bg-[#f0254c] flex items-center justify-center"
+            >
+              <Check class="w-3.5 h-3.5 text-white stroke-[3]" />
+            </div>
+          </div>
+
+          <!-- Section Divider / Title -->
+          <div class="pt-2 pb-1 border-t border-[#1f212a] flex items-center justify-between text-xs text-gray-400 font-semibold tracking-wide">
+            <span>PISTAS Y MÚSICA DISPONIBLE</span>
+            <span>{{ filteredSoundTracks.length }} resultados</span>
+          </div>
+
+          <!-- Tracks List -->
+          <div class="space-y-2 pb-6">
+            <div
+              v-for="track in filteredSoundTracks"
+              :key="track.id"
+              @click="selectMusicTrack(track)"
+              class="flex items-center justify-between p-3 rounded-2xl hover:bg-white/[0.04] transition-colors cursor-pointer group"
+              :class="selectedMusicTrack?.id === track.id ? 'bg-white/[0.03] ring-1 ring-[#f0254c]/40' : ''"
+            >
+              <!-- Left: Avatar with Play badge -->
+              <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-11 h-11 rounded-full overflow-hidden bg-black/60 border border-white/15 relative shrink-0">
+                  <img
+                    :src="track.avatarUrl"
+                    :alt="track.title"
+                    class="w-full h-full object-cover"
+                  />
+                  <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-85 group-hover:opacity-100 transition-opacity">
+                    <Play class="w-4 h-4 text-white fill-white ml-0.5" />
+                  </div>
+                </div>
+
+                <!-- Middle: Title, Creator, Duration, Usage -->
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-white truncate group-hover:text-[#f0254c] transition-colors">
+                    {{ track.title }}
+                  </p>
+                  <p class="text-xs text-gray-400 truncate">
+                    {{ track.creator }} · {{ track.duration }} · {{ track.usageCount }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Right: Bookmark and selection checkmark -->
+              <div class="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  @click="toggleBookmarkTrack(track, $event)"
+                  class="p-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  :title="track.isBookmarked ? 'Guardada' : 'Guardar sonido'"
+                >
+                  <Bookmark
+                    class="w-4 h-4"
+                    :class="track.isBookmarked ? 'text-[#f0254c] fill-[#f0254c]' : 'text-gray-400'"
+                  />
+                </button>
+
+                <div
+                  v-if="selectedMusicTrack?.id === track.id"
+                  class="w-5 h-5 rounded-full bg-[#f0254c] flex items-center justify-center"
+                >
+                  <Check class="w-3.5 h-3.5 text-white stroke-[3]" />
+                </div>
+              </div>
+            </div>
+
+            <div v-if="filteredSoundTracks.length === 0" class="py-12 text-center text-sm text-gray-500">
+              No se encontraron sonidos para esta búsqueda.
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ======================================================== -->
     <!-- VIEW A: EDITAR TRAK (exact match to media_1793134078724_174a141b.png) -->
     <!-- ======================================================== -->
     <template v-else-if="recordedMedia && !showMetadataView">
@@ -827,9 +1126,9 @@ onUnmounted(() => {
       <header class="h-14 px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 bg-black/90">
         <button
           type="button"
-          @click="resetRecordedMedia"
+          @click="isEditingSound ? (isEditingSound = false) : resetRecordedMedia()"
           class="p-2 -ml-2 rounded-full text-white hover:bg-white/10 transition-colors cursor-pointer"
-          title="Volver a grabar"
+          :title="isEditingSound ? 'Volver a edición' : 'Volver a grabar'"
         >
           <ArrowLeft class="w-6 h-6" />
         </button>
@@ -842,7 +1141,10 @@ onUnmounted(() => {
       </header>
 
       <!-- 2. Main Content: Video Preview + Timeline + Tools -->
-      <main class="flex-1 flex flex-col items-center justify-between px-4 py-2 min-h-0 overflow-y-auto no-scrollbar">
+      <main
+        class="flex-1 flex flex-col items-center px-4 py-2 min-h-0 overflow-y-auto no-scrollbar"
+        :class="isEditingSound ? 'justify-start gap-3 sm:gap-4' : 'justify-between'"
+      >
         <!-- Video Preview Container (Wider, adaptive to landscape / portrait, no cropping) -->
         <div
           ref="videoContainerRef"
@@ -980,63 +1282,230 @@ onUnmounted(() => {
           </Transition>
         </div>
 
-        <!-- Video Time Counter (Left aligned) -->
-        <div class="w-full max-w-[420px] px-1 mt-2 text-left">
-          <span class="text-xs sm:text-sm font-mono text-gray-300 font-semibold">
-            {{ formattedCurrentTime }} / {{ formattedVideoDuration }}
-          </span>
-        </div>
-
-        <!-- Filmstrip & Timeline Box matching screenshot (taller, full-length frame tiles, interactive scrubbing) -->
-        <div
-          ref="editorTimelineRef"
-          class="w-full max-w-[420px] mt-2 p-2.5 rounded-2xl border border-white/15 bg-[#121319] select-none cursor-pointer touch-none"
-          @pointerdown="startEditorScrub"
-          @pointermove="onEditorScrub"
-          @pointerup="stopEditorScrub"
-          @pointercancel="stopEditorScrub"
-        >
-          <!-- Time numbers row: 0:00 0:01 0:02 0:03 -->
-          <div class="flex items-center justify-between px-2 mb-1.5 text-[11px] font-mono text-gray-400">
-            <span v-for="marker in timeMarkers" :key="marker">{{ marker }}</span>
+        <!-- ======================================================== -->
+        <!-- IF isEditingSound: Show Sonido Panel matching Image 1     -->
+        <!-- ======================================================== -->
+        <div v-if="isEditingSound" class="w-full max-w-[420px] px-2 pt-2 pb-4 space-y-4 animate-fade-in">
+          <!-- Header: Sonido (left) | Listo (right) -->
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white tracking-wide">
+              Sonido
+            </h3>
+            <button
+              type="button"
+              @click="isEditingSound = false"
+              class="text-sm font-bold text-[#f0254c] hover:text-[#d9193f] transition-colors cursor-pointer"
+            >
+              Listo
+            </button>
           </div>
 
-          <!-- Filmstrip frames track (taller, full-length frame tiles) -->
-          <div class="relative h-16 sm:h-20 rounded-xl overflow-hidden bg-black/90 border border-white/10 flex items-center">
-            <!-- Simulated clip thumbnails frames -->
-            <div class="flex-1 h-full flex items-center justify-between overflow-hidden opacity-85 gap-1.5 px-1">
-              <div
-                v-for="idx in (isLandscape ? 5 : 7)"
-                :key="idx"
-                class="h-full rounded-md bg-[#16121c] border border-white/10 relative overflow-hidden flex items-center justify-center shrink-0"
-                :class="isLandscape ? 'flex-1' : 'aspect-[9/16]'"
-              >
-                <video
-                  v-if="recordedMedia && recordedMedia.type === 'video'"
-                  :src="recordedMedia.url"
-                  class="w-full h-full object-cover opacity-85 pointer-events-none"
-                  muted
-                  playsinline
-                  preload="auto"
-                />
-                <img
-                  v-else-if="recordedMedia"
-                  :src="recordedMedia.url"
-                  class="w-full h-full object-cover opacity-85 pointer-events-none"
-                />
+          <!-- Audio track card matching Image 1 -->
+          <div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#14121a] border border-white/10">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-full bg-[#f0254c]/15 border border-[#f0254c]/40 flex items-center justify-center shrink-0">
+                <Music class="w-4 h-4 text-[#f0254c]" />
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-bold text-white truncate">
+                  {{ selectedMusicTrack ? selectedMusicTrack.title : 'Audio original' }}
+                </p>
+                <p class="text-xs text-gray-400 truncate">
+                  {{ selectedMusicTrack ? `${selectedMusicTrack.creator} · Sonido seleccionado` : 'El sonido del video se conserva.' }}
+                </p>
               </div>
             </div>
 
-            <!-- Red playhead indicator with top triangle and vertical needle -->
-            <div
-              class="absolute top-0 bottom-0 pointer-events-none -translate-x-1/2 z-20"
-              :style="{ left: `${playheadPositionPercent}%` }"
+            <!-- Elegir button matching Image 1 -->
+            <button
+              type="button"
+              @click="isPickingMusic = true"
+              class="px-5 py-2.5 rounded-2xl bg-[#a5002b] hover:bg-[#c01538] text-white font-bold text-xs tracking-wide shrink-0 transition-all cursor-pointer shadow-md active:scale-95 whitespace-nowrap"
             >
-              <div class="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[7px] border-t-[#f0254c] -translate-x-[4px]" />
-              <div class="w-[2px] h-full bg-[#f0254c] shadow-[0_0_8px_#f0254c]" />
+              Elegir
+            </button>
+          </div>
+
+          <!-- Audio original volume slider matching Image 1 -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs font-semibold text-gray-200">
+              <span>Audio original</span>
+              <span class="font-mono font-bold text-xs text-[#f0254c]">{{ originalAudioVolume }}%</span>
+            </div>
+
+            <div class="relative flex items-center">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                :value="originalAudioVolume"
+                @input="handleOriginalVolumeChange"
+                class="volume-custom-slider w-full h-2 rounded-full appearance-none cursor-pointer outline-none"
+                :style="{
+                  background: `linear-gradient(to right, #f0254c 0%, #f0254c ${originalAudioVolume}%, #232530 ${originalAudioVolume}%, #232530 100%)`
+                }"
+              />
+            </div>
+          </div>
+
+          <!-- Additional volume slider if music track is selected -->
+          <div v-if="selectedMusicTrack" class="space-y-2 pt-2 border-t border-white/10">
+            <div class="flex items-center justify-between text-xs font-semibold text-gray-200">
+              <span class="truncate max-w-[220px]">
+                Sonido: {{ selectedMusicTrack.title }} <span class="text-gray-400 font-normal">({{ selectedMusicTrack.creator }})</span>
+              </span>
+              <span class="font-mono font-bold text-xs text-[#f0254c]">{{ musicAudioVolume }}%</span>
+            </div>
+
+            <div class="relative flex items-center">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                v-model.number="musicAudioVolume"
+                class="volume-custom-slider w-full h-2 rounded-full appearance-none cursor-pointer outline-none"
+                :style="{
+                  background: `linear-gradient(to right, #f0254c 0%, #f0254c ${musicAudioVolume}%, #232530 ${musicAudioVolume}%, #232530 100%)`
+                }"
+              />
+            </div>
+
+            <div class="flex justify-end pt-1">
+              <button
+                type="button"
+                @click="removeMusicTrack"
+                class="text-[11px] text-red-400 hover:text-red-300 font-semibold cursor-pointer"
+              >
+                Quitar sonido añadido
+              </button>
             </div>
           </div>
         </div>
+
+        <!-- ======================================================== -->
+        <!-- ELSE: Standard Timeline + Tools + Portada y datos button -->
+        <!-- ======================================================== -->
+        <template v-else>
+          <!-- Video Time Counter (Left aligned) -->
+          <div class="w-full max-w-[420px] px-1 mt-2 text-left">
+            <span class="text-xs sm:text-sm font-mono text-gray-300 font-semibold">
+              {{ formattedCurrentTime }} / {{ formattedVideoDuration }}
+            </span>
+          </div>
+
+          <!-- Filmstrip & Timeline Box matching screenshot (taller, full-length frame tiles, interactive scrubbing) -->
+          <div
+            ref="editorTimelineRef"
+            class="w-full max-w-[420px] mt-2 p-2.5 rounded-2xl border border-white/15 bg-[#121319] select-none cursor-pointer touch-none"
+            @pointerdown="startEditorScrub"
+            @pointermove="onEditorScrub"
+            @pointerup="stopEditorScrub"
+            @pointercancel="stopEditorScrub"
+          >
+            <!-- Time numbers row: 0:00 0:01 0:02 0:03 -->
+            <div class="flex items-center justify-between px-2 mb-1.5 text-[11px] font-mono text-gray-400">
+              <span v-for="marker in timeMarkers" :key="marker">{{ marker }}</span>
+            </div>
+
+            <!-- Filmstrip frames track (taller, full-length frame tiles) -->
+            <div class="relative h-16 sm:h-20 rounded-xl overflow-hidden bg-black/90 border border-white/10 flex items-center">
+              <!-- Simulated clip thumbnails frames -->
+              <div class="flex-1 h-full flex items-center justify-between overflow-hidden opacity-85 gap-1.5 px-1">
+                <div
+                  v-for="idx in (isLandscape ? 5 : 7)"
+                  :key="idx"
+                  class="h-full rounded-md bg-[#16121c] border border-white/10 relative overflow-hidden flex items-center justify-center shrink-0"
+                  :class="isLandscape ? 'flex-1' : 'aspect-[9/16]'"
+                >
+                  <video
+                    v-if="recordedMedia && recordedMedia.type === 'video'"
+                    :src="recordedMedia.url"
+                    class="w-full h-full object-cover opacity-85 pointer-events-none"
+                    muted
+                    playsinline
+                    preload="auto"
+                  />
+                  <img
+                    v-else-if="recordedMedia"
+                    :src="recordedMedia.url"
+                    class="w-full h-full object-cover opacity-85 pointer-events-none"
+                  />
+                </div>
+              </div>
+
+              <!-- Red playhead indicator with top triangle and vertical needle -->
+              <div
+                class="absolute top-0 bottom-0 pointer-events-none -translate-x-1/2 z-20"
+                :style="{ left: `${playheadPositionPercent}%` }"
+              >
+                <div class="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[7px] border-t-[#f0254c] -translate-x-[4px]" />
+                <div class="w-[2px] h-full bg-[#f0254c] shadow-[0_0_8px_#f0254c]" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 Editing Tool Pills Row (matching screenshot) -->
+          <div class="w-full max-w-[420px] grid grid-cols-4 gap-2 mt-3 mb-3">
+            <!-- 1. Editar -->
+            <button
+              type="button"
+              @click="handleToggleSpeed"
+              class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+              title="Cambiar velocidad"
+            >
+              <SlidersHorizontal class="w-3.5 h-3.5 text-[#f0254c]" />
+              <span>Editar</span>
+            </button>
+
+            <!-- 2. Sonido -->
+            <button
+              type="button"
+              @click="handleToggleSound"
+              class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+              :class="selectedMusicTrack || isEditingSound ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
+              title="Configurar sonido o música"
+            >
+              <Music class="w-3.5 h-3.5 text-[#f0254c]" />
+              <span>Sonido</span>
+            </button>
+
+            <!-- 3. Texto -->
+            <button
+              type="button"
+              @click="handleToggleText"
+              class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+              :class="videoTextOverlay ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
+              title="Añadir o editar texto"
+            >
+              <Type class="w-3.5 h-3.5 text-[#f0254c]" />
+              <span>Texto</span>
+            </button>
+
+            <!-- 4. Portada -->
+            <button
+              type="button"
+              @click="handleSetCover"
+              class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+              :class="selectedCoverTime > 0 ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
+              title="Elegir frame de portada"
+            >
+              <ImageIcon class="w-3.5 h-3.5 text-[#f0254c]" />
+              <span>Portada</span>
+            </button>
+          </div>
+
+          <!-- 5. Minimalist CTA Button: Portada y datos -->
+          <div class="w-full max-w-[420px] pt-1 pb-1">
+            <button
+              type="button"
+              @click="showMetadataView = true"
+              class="w-full py-2.5 sm:py-3 rounded-xl bg-[#f0254c] hover:bg-[#d9193f] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-[0_2px_14px_rgba(240,37,76,0.3)] transition-all duration-200 cursor-pointer active:scale-98"
+            >
+              <span>Portada y datos</span>
+              <ArrowRight class="w-4 h-4 text-white" />
+            </button>
+          </div>
+        </template>
 
         <!-- Text Customizer Modal (Color picker, styles, input) -->
         <Transition name="fade">
@@ -1156,67 +1625,7 @@ onUnmounted(() => {
           </div>
         </Transition>
 
-        <!-- 4 Editing Tool Pills Row (matching screenshot) -->
-        <div class="w-full max-w-[420px] grid grid-cols-4 gap-2 mt-3 mb-3">
-          <!-- 1. Editar -->
-          <button
-            type="button"
-            @click="handleToggleSpeed"
-            class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-            title="Cambiar velocidad"
-          >
-            <SlidersHorizontal class="w-3.5 h-3.5 text-[#f0254c]" />
-            <span>Editar</span>
-          </button>
 
-          <!-- 2. Sonido -->
-          <button
-            type="button"
-            @click="handleToggleSound"
-            class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-            :title="isSoundMuted ? 'Activar sonido' : 'Silenciar sonido'"
-          >
-            <VolumeX v-if="isSoundMuted" class="w-3.5 h-3.5 text-gray-400" />
-            <Music v-else class="w-3.5 h-3.5 text-[#f0254c]" />
-            <span>Sonido</span>
-          </button>
-
-          <!-- 3. Texto -->
-          <button
-            type="button"
-            @click="handleToggleText"
-            class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-            :class="videoTextOverlay ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
-            title="Añadir o editar texto"
-          >
-            <Type class="w-3.5 h-3.5 text-[#f0254c]" />
-            <span>Texto</span>
-          </button>
-
-          <!-- 4. Portada -->
-          <button
-            type="button"
-            @click="handleSetCover"
-            class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-            :class="selectedCoverTime > 0 ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
-            title="Elegir frame de portada"
-          >
-            <ImageIcon class="w-3.5 h-3.5 text-[#f0254c]" />
-            <span>Portada</span>
-          </button>
-        </div>
-
-        <!-- 5. Minimalist CTA Button: Portada y datos -->
-        <div class="w-full max-w-[420px] pt-1 pb-1">
-          <button
-            type="button"
-            @click="showMetadataView = true"
-            class="w-full py-2.5 sm:py-3 rounded-xl bg-[#f0254c] hover:bg-[#d9193f] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-[0_2px_14px_rgba(240,37,76,0.3)] transition-all duration-200 cursor-pointer active:scale-98"
-          >
-            <span>Portada y datos</span>
-            <ArrowRight class="w-4 h-4 text-white" />
-          </button>
-        </div>
       </main>
     </template>
 
@@ -1580,8 +1989,23 @@ onUnmounted(() => {
   }
 }
 
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 220ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .fade-enter-active,
@@ -1592,5 +2016,47 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Custom Red Volume Slider Thumb & Track */
+.volume-custom-slider {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.volume-custom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #f0254c;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px rgba(240, 37, 76, 0.85);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.volume-custom-slider::-webkit-slider-thumb:hover,
+.volume-custom-slider::-webkit-slider-thumb:active {
+  transform: scale(1.15);
+  box-shadow: 0 0 14px rgba(240, 37, 76, 1);
+}
+
+.volume-custom-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #f0254c;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px rgba(240, 37, 76, 0.85);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.volume-custom-slider::-moz-range-thumb:hover,
+.volume-custom-slider::-moz-range-thumb:active {
+  transform: scale(1.15);
+  box-shadow: 0 0 14px rgba(240, 37, 76, 1);
 }
 </style>
