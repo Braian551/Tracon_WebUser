@@ -6,6 +6,7 @@ import type {
   CommunityFeedItem,
   CommunityDetail,
   NotificationItem,
+  MentionUser,
 } from '../types'
 
 export const navItemsData: NavItem[] = [
@@ -410,6 +411,93 @@ export const notificationsData: NotificationItem[] = [
     actionText: 'comentó tu publicación.',
     timeAgo: '21 h',
     thumbnailType: 'tracon_promo',
+  },
+]
+
+export const mentionUsersData: MentionUser[] = [
+  {
+    id: 'tracon',
+    name: 'Tracon',
+    handle: 'tracon',
+    relation: 'Mutuo',
+    followingStatus: 'siguiendo',
+    isTraconOfficial: true,
+  },
+  {
+    id: 'braian',
+    name: 'Braian Andrés Oquendo Durango',
+    handle: 'braianoquendurango',
+    relation: 'Mutuo',
+    followingStatus: 'siguiendo',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces',
+  },
+  {
+    id: 'sparky',
+    name: 'Sparky67',
+    handle: 'dusty',
+    relation: 'Mutuo',
+    followingStatus: 'siguiendo',
+    avatarType: 'purple_mask',
+  },
+  {
+    id: 'hector',
+    name: 'Héctor Maya',
+    handle: 'hmaya10',
+    relation: 'Mutuo',
+    followingStatus: 'siguiendo',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
+  },
+  {
+    id: 'luis',
+    name: 'Luis',
+    handle: 'luis8288gg',
+    relation: 'Mutuo',
+    followingStatus: 'siguiendo',
+    avatarUrl: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100&h=100&fit=crop&crop=faces',
+  },
+  {
+    id: 'octavio',
+    name: 'Octavio',
+    handle: 'octav20rpro',
+    followingStatus: 'seguir-tambien',
+    avatarType: 'red_user',
+  },
+  {
+    id: 'braian-2',
+    name: 'Braian Andrés Oquendo Durango',
+    handle: 'braianoquen_52a1ae60',
+    followingStatus: 'siguiendo',
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=faces',
+  },
+  {
+    id: 'el-men',
+    name: 'el men',
+    handle: 'eliashurtado',
+    avatarType: 'red_user',
+  },
+  {
+    id: 'camilo',
+    name: 'Camilo',
+    handle: 'camilo828288',
+    avatarType: 'minecraft_pink',
+  },
+  {
+    id: 'alejandro',
+    name: 'Alejandro',
+    handle: 'oscardurango',
+    avatarType: 'gamer_blue',
+  },
+  {
+    id: 'mr-meat',
+    name: 'Mr Meat',
+    handle: 'mrmeat',
+    avatarType: 'horror_meat',
+  },
+  {
+    id: 'dayam',
+    name: 'Dayam',
+    handle: 'userdayis',
+    avatarType: 'red_user',
   },
 ]
 

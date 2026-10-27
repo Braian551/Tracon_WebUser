@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import CreatePollView from './CreatePollView.vue'
+import MentionPickerView from './MentionPickerView.vue'
 import {
   X,
   Globe,
@@ -58,6 +59,9 @@ const attachedVideoName = ref<string | null>(null)
 // Poll state
 const isCreatingPoll = ref(false)
 const attachedPoll = ref<PollData | null>(null)
+
+// Mention state
+const isMentioning = ref(false)
 
 // Trak form state
 const trakGame = ref('Specimen Zero')
@@ -188,9 +192,25 @@ const handleHashClick = () => {
 }
 
 const handleAtClick = () => {
+  isMentioning.value = true
+}
+
+const handleMentionSelected = (handle: string) => {
+  const mentionText = `@${handle} `
+
+  // If poll is attached, append mention into poll question
+  if (attachedPoll.value) {
+    attachedPoll.value.question = attachedPoll.value.question
+      ? `${attachedPoll.value.question} ${mentionText}`
+      : mentionText
+    isMentioning.value = false
+    return
+  }
+
   const el = textareaRef.value
   if (!el) {
-    textContent.value = textContent.value ? `${textContent.value} @` : '@'
+    textContent.value = textContent.value ? `${textContent.value} ${mentionText}` : mentionText
+    isMentioning.value = false
     return
   }
 
@@ -198,13 +218,14 @@ const handleAtClick = () => {
   const end = el.selectionEnd ?? textContent.value.length
   const before = textContent.value.substring(0, start)
   const after = textContent.value.substring(end)
-  const prefix = (before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n')) ? ' @' : '@'
+  const prefix = (before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n')) ? ' ' : ''
 
-  textContent.value = before + prefix + after
+  textContent.value = before + prefix + mentionText + after
+  isMentioning.value = false
 
   nextTick(() => {
     el.focus()
-    const newPos = start + prefix.length
+    const newPos = start + prefix.length + mentionText.length
     el.setSelectionRange(newPos, newPos)
   })
 }
@@ -299,7 +320,7 @@ const handlePublish = () => {
   <main
     class="flex-1 min-w-0 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 shadow-2xl relative select-none"
   >
-    <!-- Screen: Crear Encuesta (replaces current view with smooth transition) -->
+    <!-- Screen: Crear Encuesta / Mención (replaces current view with smooth transition) -->
     <Transition name="view-slide" mode="out-in">
       <CreatePollView
         v-if="isCreatingPoll"
@@ -307,6 +328,13 @@ const handlePublish = () => {
         :initial-poll="attachedPoll"
         @cancel="isCreatingPoll = false"
         @save="handlePollSaved"
+      />
+
+      <MentionPickerView
+        v-else-if="isMentioning"
+        key="mention-picker-view"
+        @cancel="isMentioning = false"
+        @select="handleMentionSelected"
       />
 
       <div
