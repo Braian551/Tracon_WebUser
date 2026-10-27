@@ -127,13 +127,21 @@ export const communityDetailsData: Record<string, CommunityDetail> = {
   'specimen-zero': {
     id: 'specimen-zero',
     name: 'Specimen zero',
+    handle: '@specimen-zero',
     gameSubtitle: 'Specimen Zero',
-    membersCount: '22 miembros',
+    membersCount: '23 miembros',
     activeChannel: 'general',
+    isVerified: true,
+    description: 'aquí encontraras personas de tu mismo nicho',
+    rules: '1. no insulstar',
+    tags: ['terror', 'survival'],
+    country: 'Colombia',
+    flag: '🇨🇴',
+    language: 'Español',
     channels: [
-      { id: 'general', name: '# General', unreadBadge: 2 },
-      { id: 'multimedia', name: 'Multimedia' },
-      { id: 'anuncios', name: 'Anuncios' },
+      { id: 'general', name: 'General', subtitle: 'Participación de miembros', unreadBadge: 2 },
+      { id: 'multimedia', name: 'Multimedia', subtitle: 'Participación de miembros' },
+      { id: 'anuncios', name: 'Anuncios', subtitle: 'Publican moderadores' },
     ],
     messages: [
       {

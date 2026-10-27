@@ -11,6 +11,7 @@ import {
 } from 'lucide-vue-next'
 import CommunityMultimediaView from './CommunityMultimediaView.vue'
 import CommunityAnnouncementsView from './CommunityAnnouncementsView.vue'
+import CommunityProfileView from './CommunityProfileView.vue'
 import type { CommunityDetail } from '../../types'
 
 interface Props {
@@ -29,6 +30,7 @@ const activeChannel = ref(props.community.activeChannel || 'general')
 const messageText = ref('')
 const messagesList = ref([...props.community.messages])
 const messagesContainer = ref<HTMLElement | null>(null)
+const showCommunityProfile = ref(false)
 
 const scrollToBottom = () => {
   nextTick(() => {
@@ -48,6 +50,14 @@ const toggleMenu = () => {
 
 const handleViewProfile = () => {
   isMenuOpen.value = false
+  showCommunityProfile.value = true
+}
+
+const handleOpenChatFromProfile = (channelId?: string) => {
+  if (channelId) {
+    activeChannel.value = channelId
+  }
+  showCommunityProfile.value = false
 }
 
 const handleLeave = () => {
@@ -93,71 +103,95 @@ const handleSend = () => {
   <main
     class="flex-1 min-w-0 rounded-2xl lg:rounded-3xl border border-[#1f212a] bg-black overflow-hidden flex flex-col h-[calc(100vh-2rem)] lg:h-[calc(100vh-2.5rem)] sticky top-4 lg:top-5 shadow-lg relative"
   >
-    <!-- Top Header -->
-    <header class="h-16 px-4 sm:px-5 border-b border-[#1f212a] flex items-center justify-between shrink-0 bg-black/90 backdrop-blur-md z-30 select-none relative">
-      <div class="flex items-center gap-3 min-w-0">
-        <!-- Back button to return to communities list -->
-        <button
-          type="button"
-          @click="emit('back')"
-          class="p-1.5 -ml-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
-          title="Volver a Comunidades"
-        >
-          <ChevronLeft class="w-6 h-6" />
-        </button>
+    <Transition name="profile-fade" mode="out-in">
+      <!-- 1. PERFIL DE COMUNIDAD (cuando se hace clic en nombre o 'ver perfil') -->
+      <CommunityProfileView
+        v-if="showCommunityProfile"
+        key="community-profile-view"
+        :community="community"
+        @back="showCommunityProfile = false"
+        @open-chat="handleOpenChatFromProfile"
+        @leave="handleLeave"
+      />
 
-        <!-- Community Avatar in header matching Image -->
-        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-[#262835] bg-[#220d12] shrink-0 flex items-center justify-center overflow-hidden">
-          <div class="w-full h-full bg-gradient-to-br from-[#591421] to-[#1a0509] flex items-center justify-center">
-            <span class="text-xs font-bold text-red-300">SZ</span>
+      <!-- 2. SALA DE CHAT Y CANALES DE COMUNIDAD -->
+      <div
+        v-else
+        key="community-chat-room-view"
+        class="flex-1 flex flex-col h-full overflow-hidden"
+      >
+        <!-- Top Header -->
+        <header class="h-16 px-4 sm:px-5 border-b border-[#1f212a] flex items-center justify-between shrink-0 bg-black/90 backdrop-blur-md z-30 select-none relative">
+          <div class="flex items-center gap-3 min-w-0">
+            <!-- Back button to return to communities list -->
+            <button
+              type="button"
+              @click="emit('back')"
+              class="p-1.5 -ml-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+              title="Volver a Comunidades"
+            >
+              <ChevronLeft class="w-6 h-6" />
+            </button>
+
+            <!-- Clickable Community Avatar + Name leading to Community Profile -->
+            <div
+              @click="showCommunityProfile = true"
+              class="flex items-center gap-3 min-w-0 cursor-pointer group hover:opacity-90 transition-opacity"
+              title="Ver perfil de la comunidad"
+            >
+              <!-- Community Avatar in header matching Image -->
+              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-[#262835] bg-[#220d12] shrink-0 flex items-center justify-center overflow-hidden group-hover:border-red-500/50 transition-colors">
+                <div class="w-full h-full bg-gradient-to-br from-[#591421] to-[#1a0509] flex items-center justify-center">
+                  <span class="text-xs font-bold text-red-300">SZ</span>
+                </div>
+              </div>
+
+              <div class="min-w-0">
+                <h2 class="text-base sm:text-lg font-bold text-white tracking-tight truncate leading-tight group-hover:text-red-200 transition-colors">
+                  {{ community.name }}
+                </h2>
+                <p class="text-xs text-gray-400 truncate mt-0.5">
+                  {{ activeChannel === 'general' ? '#General' : activeChannel === 'multimedia' ? 'Multimedia' : 'Anuncios' }} · {{ community.membersCount }}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div class="min-w-0">
-          <h2 class="text-base sm:text-lg font-bold text-white tracking-tight truncate leading-tight">
-            {{ community.name }}
-          </h2>
-          <p class="text-xs text-gray-400 truncate mt-0.5">
-            {{ activeChannel === 'general' ? '#General' : activeChannel === 'multimedia' ? 'Multimedia' : 'Anuncios' }} · {{ community.membersCount }}
-          </p>
-        </div>
-      </div>
+          <!-- Right Options Button with Dropdown -->
+          <div ref="menuRef" class="relative">
+            <button
+              type="button"
+              @click.stop="toggleMenu"
+              class="p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              :class="isMenuOpen ? 'text-white bg-white/10' : ''"
+              title="Opciones de la comunidad"
+            >
+              <MoreHorizontal class="w-5 h-5" />
+            </button>
 
-      <!-- Right Options Button with Dropdown -->
-      <div ref="menuRef" class="relative">
-        <button
-          type="button"
-          @click.stop="toggleMenu"
-          class="p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-          :class="isMenuOpen ? 'text-white bg-white/10' : ''"
-          title="Opciones de la comunidad"
-        >
-          <MoreHorizontal class="w-5 h-5" />
-        </button>
+            <!-- Dropdown Menu exactly matching Image -->
+            <div
+              v-if="isMenuOpen"
+              class="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-[#161722] border border-[#262838] py-2 shadow-2xl shadow-black/95 z-50 overflow-hidden"
+            >
+              <button
+                type="button"
+                @click="handleViewProfile"
+                class="w-full text-left px-5 py-3 text-[16px] font-normal text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+              >
+                Ver perfil
+              </button>
 
-        <!-- Dropdown Menu exactly matching Image -->
-        <div
-          v-if="isMenuOpen"
-          class="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-[#161722] border border-[#262838] py-2 shadow-2xl shadow-black/95 z-50 overflow-hidden"
-        >
-          <button
-            type="button"
-            @click="handleViewProfile"
-            class="w-full text-left px-5 py-3 text-[16px] font-normal text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-          >
-            Ver perfil
-          </button>
-
-          <button
-            type="button"
-            @click="handleLeave"
-            class="w-full text-left px-5 py-3 text-[16px] font-normal text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-          >
-            Salir
-          </button>
-        </div>
-      </div>
-    </header>
+              <button
+                type="button"
+                @click="handleLeave"
+                class="w-full text-left px-5 py-3 text-[16px] font-normal text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+              >
+                Salir
+              </button>
+            </div>
+          </div>
+        </header>
 
     <!-- Channels Sub-tabs Header with Icons (# General / Multimedia / Anuncios) -->
     <div class="relative flex border-b border-[#15161e] px-2 bg-black/85 backdrop-blur-md shrink-0 select-none z-10">
@@ -319,17 +353,22 @@ const handleSend = () => {
         />
       </Transition>
     </div>
-  </main>
+  </div>
+</Transition>
+</main>
 </template>
 
 <style scoped>
 .channel-fade-enter-active,
-.channel-fade-leave-active {
+.channel-fade-leave-active,
+.profile-fade-enter-active,
+.profile-fade-leave-active {
   transition: opacity 240ms cubic-bezier(0.23, 1, 0.32, 1), transform 240ms cubic-bezier(0.23, 1, 0.32, 1);
   will-change: opacity, transform;
 }
 
-.channel-fade-leave-active {
+.channel-fade-leave-active,
+.profile-fade-leave-active {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -338,23 +377,28 @@ const handleSend = () => {
   z-index: 0;
 }
 
-.channel-fade-enter-active {
+.channel-fade-enter-active,
+.profile-fade-enter-active {
   z-index: 10;
 }
 
-.channel-fade-enter-from {
+.channel-fade-enter-from,
+.profile-fade-enter-from {
   opacity: 0;
   transform: translateY(8px) scale(0.995);
 }
 
-.channel-fade-leave-to {
+.channel-fade-leave-to,
+.profile-fade-leave-to {
   opacity: 0;
   transform: translateY(-8px) scale(0.995);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .channel-fade-enter-active,
-  .channel-fade-leave-active {
+  .channel-fade-leave-active,
+  .profile-fade-enter-active,
+  .profile-fade-leave-active {
     transition: opacity 150ms ease;
     transform: none;
   }
