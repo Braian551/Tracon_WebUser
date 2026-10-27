@@ -58,6 +58,7 @@ export interface Post {
     badgeText: string
   }
   mediaUrl?: string
+  mediaType?: 'image' | 'video'
   gameTag?: string
   locationTag?: string
   challengeTag?: string
@@ -106,7 +107,10 @@ export interface CommunityChannelMessage {
   dateHeader?: string
   authorName: string
   avatarBg?: string
-  text: string
+  text?: string
+  mediaUrl?: string
+  mediaType?: 'image' | 'video'
+  mediaName?: string
   timestamp?: string
   isMine?: boolean
 }

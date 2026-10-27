@@ -110,9 +110,15 @@ defineProps<Props>()
           </div>
         </div>
 
-        <!-- Attached Media Image -->
-        <div v-if="post.mediaUrl" class="mt-2.5 rounded-xl overflow-hidden border border-[#1f212a] max-h-96">
-          <img :src="post.mediaUrl" alt="Adjunto" class="w-full h-full object-cover" />
+        <!-- Attached Media Image or Video -->
+        <div v-if="post.mediaUrl" class="mt-2.5 rounded-xl overflow-hidden border border-[#1f212a] max-h-96 bg-black">
+          <video
+            v-if="post.mediaType === 'video' || post.mediaUrl.endsWith('.mp4') || post.mediaUrl.endsWith('.webm') || post.mediaUrl.startsWith('data:video')"
+            :src="post.mediaUrl"
+            controls
+            class="w-full h-full max-h-96 object-cover bg-black"
+          />
+          <img v-else :src="post.mediaUrl" alt="Adjunto" class="w-full h-full object-cover" />
         </div>
 
         <!-- Hero Card Banner (Tracon official) -->
