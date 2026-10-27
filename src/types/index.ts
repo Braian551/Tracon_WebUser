@@ -23,6 +23,17 @@ export interface PollData {
   userVotedId?: string
 }
 
+export interface MentionUser {
+  id: string
+  name: string
+  handle: string
+  relation?: string
+  followingStatus?: 'siguiendo' | 'seguir-tambien' | null
+  avatarUrl?: string
+  avatarType?: 'red_user' | 'purple_mask' | 'minecraft_pink' | 'gamer_blue' | 'horror_meat'
+  isTraconOfficial?: boolean
+}
+
 export interface Post {
   id: string
   author: {

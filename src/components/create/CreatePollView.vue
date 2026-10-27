@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
+import MentionPickerView from './MentionPickerView.vue'
 import {
   X,
   Hash,
@@ -103,20 +104,32 @@ const insertHash = () => {
 }
 
 const insertMention = () => {
+  isMentioning.value = true
+}
+
+const isMentioning = ref(false)
+
+const handleMentionSelected = (handle: string) => {
   const el = questionTextareaRef.value
+  const mentionText = `@${handle} `
   if (!el) {
-    question.value = question.value ? `${question.value} @` : '@'
+    question.value = question.value ? `${question.value} ${mentionText}` : mentionText
+    isMentioning.value = false
     return
   }
+
   const start = el.selectionStart ?? question.value.length
   const end = el.selectionEnd ?? question.value.length
   const before = question.value.substring(0, start)
   const after = question.value.substring(end)
-  const prefix = (before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n')) ? ' @' : '@'
-  question.value = before + prefix + after
+  const prefix = (before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n')) ? ' ' : ''
+
+  question.value = before + prefix + mentionText + after
+  isMentioning.value = false
+
   nextTick(() => {
     el.focus()
-    const pos = start + prefix.length
+    const pos = start + prefix.length + mentionText.length
     el.setSelectionRange(pos, pos)
   })
 }
@@ -184,7 +197,19 @@ const handleSave = () => {
 </script>
 
 <template>
-  <div class="flex-1 min-w-0 bg-black flex flex-col h-full overflow-hidden select-none">
+  <Transition name="view-slide" mode="out-in">
+    <MentionPickerView
+      v-if="isMentioning"
+      key="poll-mention-picker-view"
+      @cancel="isMentioning = false"
+      @select="handleMentionSelected"
+    />
+
+    <div
+      v-else
+      key="poll-main-view"
+      class="flex-1 min-w-0 bg-black flex flex-col h-full overflow-hidden select-none"
+    >
     <!-- Header -->
     <header class="flex items-center justify-between px-5 py-3.5 border-b border-[#1f212a] bg-black/90 backdrop-blur-md">
       <!-- Left: X button -->
@@ -439,6 +464,7 @@ const handleSave = () => {
       </div>
     </div>
   </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -448,6 +474,30 @@ const handleSave = () => {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.view-slide-enter-active,
+.view-slide-leave-active {
+  transition: opacity 240ms cubic-bezier(0.23, 1, 0.32, 1), transform 240ms cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: opacity, transform;
+}
+
+.view-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px) scale(0.995);
+}
+
+.view-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.995);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-slide-enter-active,
+  .view-slide-leave-active {
+    transition: opacity 120ms ease;
+    transform: none;
+  }
 }
 </style>
 
