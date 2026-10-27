@@ -12,10 +12,12 @@ export interface PollOption {
   votes: number
   percentage: number
   isLeading?: boolean
+  imageUrl?: string
 }
 
 export interface PollData {
   question?: string
+  responseType?: 'texto' | 'imagen'
   options: PollOption[]
   totalVotes: number
   userVotedId?: string

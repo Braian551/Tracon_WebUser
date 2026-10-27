@@ -538,10 +538,19 @@ const handlePublish = () => {
                 :key="opt.id"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-black/60 border border-[#231726] text-sm text-gray-200"
               >
-                <span class="w-6 h-6 rounded-full bg-[#79141b] text-white font-bold flex items-center justify-center text-xs shadow-sm shrink-0">
+                <div
+                  v-if="opt.imageUrl"
+                  class="w-9 h-9 rounded-lg overflow-hidden shrink-0 border border-[#3b2440] bg-[#221627]"
+                >
+                  <img :src="opt.imageUrl" alt="Opción" class="w-full h-full object-cover" />
+                </div>
+                <span
+                  v-else
+                  class="w-6 h-6 rounded-full bg-[#79141b] text-white font-bold flex items-center justify-center text-xs shadow-sm shrink-0"
+                >
                   {{ idx + 1 }}
                 </span>
-                <span class="font-medium truncate">{{ opt.text }}</span>
+                <span class="font-medium truncate">{{ opt.text || `Opción ${idx + 1}` }}</span>
               </div>
             </div>
           </div>
