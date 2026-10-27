@@ -5,7 +5,6 @@ import MentionPickerView from './MentionPickerView.vue'
 import GameSelectorView from '../common/GameSelectorView.vue'
 import {
   X,
-  Globe,
   MapPin,
   Gamepad2,
   ImageIcon,
@@ -46,9 +45,23 @@ const textContent = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const selectedGame = ref<string | null>(null)
 const selectedLocation = ref<string | null>(null)
+
+// Challenge / Reto state
 const isChallengeActive = ref(false)
 const challengeTitle = ref('')
-const challengeReward = ref('+150 pts de Impulso')
+const challengeTitleInputRef = ref<HTMLInputElement | null>(null)
+
+const toggleChallenge = () => {
+  isChallengeActive.value = !isChallengeActive.value
+  if (isChallengeActive.value) {
+    attachedPoll.value = null
+    nextTick(() => {
+      challengeTitleInputRef.value?.focus()
+    })
+  } else {
+    challengeTitle.value = ''
+  }
+}
 
 // Media attachments
 const imageInputRef = ref<HTMLInputElement | null>(null)
@@ -77,7 +90,6 @@ const isSelectingGame = ref(false)
 
 // Modals / Popovers
 const isLocationModalOpen = ref(false)
-const isChallengeModalOpen = ref(false)
 
 const popularLocations = [
   'Medellín, Colombia',
@@ -91,11 +103,14 @@ const popularLocations = [
 // Can publish computation
 const canPublish = computed(() => {
   if (activeTab.value === 'publicacion') {
+    if (isChallengeActive.value) {
+      return challengeTitle.value.trim().length > 0 && textContent.value.trim().length > 0
+    }
     return (
+      (attachedPoll.value !== null && !!attachedPoll.value.question) ||
       textContent.value.trim().length > 0 ||
       attachedImages.value.length > 0 ||
-      attachedVideoName.value !== null ||
-      attachedPoll.value !== null
+      attachedVideoName.value !== null
     )
   } else {
     return trakTitle.value.trim().length > 0 && trakGame.value.trim().length > 0
@@ -140,6 +155,7 @@ const handleVideoChange = (e: Event) => {
 
 // Poll handlers
 const openPollCreator = () => {
+  if (isChallengeActive.value) return
   isCreatingPoll.value = true
 }
 
@@ -228,13 +244,6 @@ const selectLocation = (loc: string) => {
   isLocationModalOpen.value = false
 }
 
-const saveChallenge = () => {
-  if (challengeTitle.value.trim()) {
-    isChallengeActive.value = true
-    isChallengeModalOpen.value = false
-  }
-}
-
 // Publish action
 const handlePublish = () => {
   if (!canPublish.value) return
@@ -254,7 +263,11 @@ const handlePublish = () => {
       content: publishedContent,
       gameTag: selectedGame.value || undefined,
       locationTag: selectedLocation.value || undefined,
-      challengeTag: isChallengeActive.value ? challengeTitle.value : undefined,
+      challengeTag: isChallengeActive.value && challengeTitle.value.trim() ? challengeTitle.value.trim() : undefined,
+      challengeData: isChallengeActive.value && challengeTitle.value.trim() ? {
+        title: challengeTitle.value.trim(),
+        rules: textContent.value.trim(),
+      } : undefined,
       mediaUrl: attachedImages.value[0] || undefined,
       poll: attachedPoll.value || undefined,
       stats: {
@@ -414,15 +427,19 @@ const handlePublish = () => {
           <!-- Crear reto button -->
           <button
             type="button"
-            @click="isChallengeModalOpen = true"
-            class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all duration-200 cursor-pointer select-none"
-            :class="
-              isChallengeActive
-                ? 'bg-[#f0254c]/15 text-[#f0254c] border-[#f0254c]/40'
-                : 'text-[#f0254c] hover:bg-[#f0254c]/10 border-transparent'
-            "
+            @click="toggleChallenge"
+            :disabled="!!attachedPoll"
+            class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all duration-200 select-none"
+            :class="[
+              attachedPoll
+                ? 'opacity-40 cursor-not-allowed border-transparent text-gray-500'
+                : isChallengeActive
+                  ? 'bg-[#f0254c] text-white border-[#f0254c] shadow-[0_0_12px_rgba(240,37,76,0.35)] cursor-pointer'
+                  : 'text-[#f0254c] hover:bg-[#f0254c]/10 border-transparent cursor-pointer'
+            ]"
+            :title="attachedPoll ? 'No disponible con encuesta adjunta' : (isChallengeActive ? 'Desactivar reto' : 'Crear reto')"
           >
-            <Globe class="w-3.5 h-3.5" />
+            <Trophy class="w-3.5 h-3.5" :class="isChallengeActive ? 'text-white' : 'text-[#f0254c]'" />
             <span>{{ isChallengeActive ? 'Reto activo' : 'Crear reto' }}</span>
           </button>
         </div>
@@ -575,16 +592,30 @@ const handlePublish = () => {
             </div>
           </div>
 
-          <!-- Textarea (only when poll is NOT attached) -->
-          <textarea
-            v-else
-            ref="textareaRef"
-            v-model="textContent"
-            placeholder="¿Qué estás jugando?"
-            maxlength="5000"
-            rows="6"
-            class="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none resize-none text-[17px] leading-relaxed select-text"
-          />
+          <!-- Main Text / Reto input area (only when poll is NOT attached) -->
+          <div v-else class="space-y-3">
+            <!-- Título del reto (only when isChallengeActive is true) -->
+            <div v-if="isChallengeActive" class="pb-1">
+              <input
+                ref="challengeTitleInputRef"
+                v-model="challengeTitle"
+                type="text"
+                maxlength="120"
+                placeholder="Título del reto"
+                class="w-full bg-transparent text-lg sm:text-xl font-bold text-white placeholder:text-gray-500 focus:outline-none pb-2 border-b border-[#2d1b2e] focus:border-[#f0254c]/70 transition-colors select-text"
+              />
+            </div>
+
+            <!-- Textarea: Explica las reglas del reto when challenge is active, or ¿Qué estás jugando? -->
+            <textarea
+              ref="textareaRef"
+              v-model="textContent"
+              :placeholder="isChallengeActive ? 'Explica las reglas del reto' : '¿Qué estás jugando?'"
+              maxlength="5000"
+              rows="6"
+              class="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none resize-none text-[17px] leading-relaxed select-text"
+            />
+          </div>
 
           <!-- Attached Images Preview -->
           <div v-if="attachedImages.length > 0" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2">
@@ -815,9 +846,16 @@ const handlePublish = () => {
             <button
               type="button"
               @click="openPollCreator"
-              class="text-gray-400 hover:text-[#f0254c] transition-colors cursor-pointer"
-              :class="attachedPoll ? 'text-[#f0254c]' : ''"
-              title="Crear encuesta"
+              :disabled="isChallengeActive"
+              class="transition-colors"
+              :class="[
+                isChallengeActive
+                  ? 'opacity-30 cursor-not-allowed text-gray-500 hover:text-gray-500'
+                  : attachedPoll
+                    ? 'text-[#f0254c] cursor-pointer'
+                    : 'text-gray-400 hover:text-[#f0254c] cursor-pointer'
+              ]"
+              :title="isChallengeActive ? 'No disponible al crear un reto' : 'Crear encuesta'"
             >
               <BarChart2 class="w-5 h-5" />
             </button>
@@ -896,63 +934,6 @@ const handlePublish = () => {
           >
             <span class="text-sm text-gray-300 group-hover:text-white">{{ loc }}</span>
             <Check v-if="selectedLocation === loc" class="w-4 h-4 text-cyan-400" />
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL 3: Challenge Creator (Crear Reto) -->
-    <div
-      v-if="isChallengeModalOpen"
-      class="absolute inset-0 bg-black/85 backdrop-blur-md z-30 flex items-center justify-center p-4"
-    >
-      <div class="w-full max-w-md bg-[#111218] border border-[#79141b]/60 rounded-2xl overflow-hidden shadow-2xl">
-        <div class="flex items-center justify-between p-4 border-b border-[#1f212a] bg-gradient-to-r from-[#201017] to-transparent">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <Trophy class="w-4 h-4 text-[#f0254c]" />
-            Crear Reto para la Comunidad
-          </h3>
-          <button
-            type="button"
-            @click="isChallengeModalOpen = false"
-            class="text-gray-400 hover:text-white p-1"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
-
-        <div class="p-5 space-y-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-              ¿Cuál es el desafío?
-            </label>
-            <input
-              v-model="challengeTitle"
-              type="text"
-              placeholder="Ej: Sobrevivir 5 min en Pesadilla sin linterna"
-              class="w-full px-3.5 py-2.5 rounded-xl bg-black border border-[#232532] text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#f0254c]"
-            />
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">
-              Recompensa / Puntos
-            </label>
-            <input
-              v-model="challengeReward"
-              type="text"
-              placeholder="+150 pts de Impulso"
-              class="w-full px-3.5 py-2.5 rounded-xl bg-black border border-[#232532] text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#f0254c]"
-            />
-          </div>
-
-          <button
-            type="button"
-            @click="saveChallenge"
-            :disabled="!challengeTitle.trim()"
-            class="w-full py-2.5 rounded-xl bg-[#f0254c] hover:bg-[#d9193f] text-white font-bold text-sm transition-colors cursor-pointer disabled:opacity-40"
-          >
-            Activar Reto en la Publicación
           </button>
         </div>
       </div>
