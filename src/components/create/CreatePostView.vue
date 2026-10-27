@@ -2,6 +2,7 @@
 import { ref, computed, nextTick } from 'vue'
 import CreatePollView from './CreatePollView.vue'
 import MentionPickerView from './MentionPickerView.vue'
+import GameSelectorView from '../common/GameSelectorView.vue'
 import {
   X,
   Globe,
@@ -16,7 +17,6 @@ import {
   User,
   Plus,
   Trash2,
-  Search,
   Check,
   Clock,
   PlayCircle,
@@ -72,28 +72,12 @@ const trakDifficulty = ref<'Fácil' | 'Normal' | 'Difícil' | 'Pesadilla'>('Pesa
 const trakNotes = ref('')
 const trakEvidence = ref<string | null>(null)
 
+// Game selector state
+const isSelectingGame = ref(false)
+
 // Modals / Popovers
-const isGameModalOpen = ref(false)
 const isLocationModalOpen = ref(false)
 const isChallengeModalOpen = ref(false)
-const gameSearchQuery = ref('')
-
-const availableGames = [
-  { id: 'specimen-zero', name: 'Specimen Zero', genre: 'Terror / Survival' },
-  { id: 'brawl-stars', name: 'Brawl Stars', genre: 'Acción / Multijugador' },
-  { id: 'dead-by-daylight', name: 'Dead by Daylight', genre: 'Terror asimétrico' },
-  { id: 'silent-hill-2', name: 'Silent Hill 2 Remake', genre: 'Terror psicológico' },
-  { id: 'resident-evil-4', name: 'Resident Evil 4', genre: 'Survival Horror' },
-  { id: 'phasmophobia', name: 'Phasmophobia', genre: 'Investigación paranormal' },
-  { id: 'lethal-company', name: 'Lethal Company', genre: 'Cooperativo / Terror' },
-  { id: 'granny', name: 'Granny', genre: 'Terror clásico' },
-]
-
-const filteredGames = computed(() => {
-  if (!gameSearchQuery.value.trim()) return availableGames
-  const q = gameSearchQuery.value.toLowerCase().trim()
-  return availableGames.filter(g => g.name.toLowerCase().includes(q) || g.genre.toLowerCase().includes(q))
-})
 
 const popularLocations = [
   'Medellín, Colombia',
@@ -230,13 +214,13 @@ const handleMentionSelected = (handle: string) => {
   })
 }
 
-const selectGame = (gameName: string) => {
+const handleGameSelected = (gameName: string | null) => {
   if (activeTab.value === 'publicacion') {
     selectedGame.value = gameName
   } else {
-    trakGame.value = gameName
+    trakGame.value = gameName || 'Specimen Zero'
   }
-  isGameModalOpen.value = false
+  isSelectingGame.value = false
 }
 
 const selectLocation = (loc: string) => {
@@ -335,6 +319,14 @@ const handlePublish = () => {
         key="mention-picker-view"
         @cancel="isMentioning = false"
         @select="handleMentionSelected"
+      />
+
+      <GameSelectorView
+        v-else-if="isSelectingGame"
+        key="game-selector-view"
+        :initial-selected-game="activeTab === 'publicacion' ? selectedGame : trakGame"
+        @cancel="isSelectingGame = false"
+        @select="handleGameSelected"
       />
 
       <div
@@ -451,7 +443,7 @@ const handlePublish = () => {
           <!-- Game Selector Pill -->
           <button
             type="button"
-            @click="isGameModalOpen = true"
+            @click="isSelectingGame = true"
             class="p-2.5 rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-center shadow-sm"
             :class="
               selectedGame
@@ -670,7 +662,7 @@ const handlePublish = () => {
             Videojuego
           </label>
           <div
-            @click="isGameModalOpen = true"
+            @click="isSelectingGame = true"
             class="flex items-center justify-between p-3.5 rounded-xl bg-[#13141c] border border-[#232532] hover:border-[#f0254c]/50 transition-colors cursor-pointer"
           >
             <div class="flex items-center gap-3">
@@ -873,61 +865,6 @@ const handlePublish = () => {
         </button>
       </div>
     </footer>
-
-    <!-- MODAL 1: Game Selector -->
-    <div
-      v-if="isGameModalOpen"
-      class="absolute inset-0 bg-black/85 backdrop-blur-md z-30 flex items-center justify-center p-4"
-    >
-      <div class="w-full max-w-md bg-[#111218] border border-[#232532] rounded-2xl overflow-hidden shadow-2xl">
-        <div class="flex items-center justify-between p-4 border-b border-[#1f212a]">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <Gamepad2 class="w-4 h-4 text-[#f0254c]" />
-            Seleccionar Videojuego
-          </h3>
-          <button
-            type="button"
-            @click="isGameModalOpen = false"
-            class="text-gray-400 hover:text-white p-1"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="p-3 border-b border-[#1f212a]">
-          <div class="relative flex items-center bg-black rounded-xl border border-[#232532] px-3">
-            <Search class="w-4 h-4 text-gray-500 mr-2" />
-            <input
-              v-model="gameSearchQuery"
-              type="text"
-              placeholder="Buscar juego de Tracon..."
-              class="w-full py-2 bg-transparent text-sm text-white placeholder:text-gray-500 focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <!-- Games List -->
-        <div class="max-h-72 overflow-y-auto divide-y divide-[#181922] p-1">
-          <button
-            v-for="game in filteredGames"
-            :key="game.id"
-            type="button"
-            @click="selectGame(game.name)"
-            class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors text-left cursor-pointer group"
-          >
-            <div>
-              <p class="text-sm font-semibold text-gray-200 group-hover:text-white">{{ game.name }}</p>
-              <p class="text-xs text-gray-500">{{ game.genre }}</p>
-            </div>
-            <Check
-              v-if="selectedGame === game.name || trakGame === game.name"
-              class="w-4 h-4 text-[#f0254c]"
-            />
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- MODAL 2: Location Picker -->
     <div

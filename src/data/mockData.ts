@@ -7,6 +7,7 @@ import type {
   CommunityDetail,
   NotificationItem,
   MentionUser,
+  GameItem,
 } from '../types'
 
 export const navItemsData: NavItem[] = [
@@ -499,6 +500,19 @@ export const mentionUsersData: MentionUser[] = [
     handle: 'userdayis',
     avatarType: 'red_user',
   },
+]
+
+export const availableGamesCatalog: GameItem[] = [
+  { id: 'brawl-stars', name: 'Brawl Stars', genre: 'Acción / Multijugador' },
+  { id: 'specimen-zero', name: 'Specimen Zero', genre: 'Terror / Survival' },
+  { id: 'granny', name: 'Granny', genre: 'Terror' },
+  { id: 'mr-meat-2', name: 'Mr Meat 2: Prison Break', genre: 'Terror / Puzzle' },
+  { id: 'ice-scream', name: 'Ice Scream', genre: 'Terror / Aventura' },
+  { id: 'silent-hill-2', name: 'Silent Hill 2 Remake', genre: 'Terror psicológico' },
+  { id: 'dead-by-daylight', name: 'Dead by Daylight', genre: 'Terror asimétrico' },
+  { id: 'resident-evil-4', name: 'Resident Evil 4', genre: 'Survival Horror' },
+  { id: 'phasmophobia', name: 'Phasmophobia', genre: 'Investigación paranormal' },
+  { id: 'lethal-company', name: 'Lethal Company', genre: 'Cooperativo / Terror' },
 ]
 
 

@@ -34,6 +34,12 @@ export interface MentionUser {
   isTraconOfficial?: boolean
 }
 
+export interface GameItem {
+  id: string
+  name: string
+  genre: string
+}
+
 export interface Post {
   id: string
   author: {
