@@ -4,7 +4,9 @@ import {
   X,
   Hash,
   AtSign,
-  CheckCircle2,
+  SquareCheck,
+  List,
+  Camera,
   ImageIcon,
   Trash2,
   Plus,
@@ -26,7 +28,10 @@ const emit = defineEmits<{
 // State
 const question = ref(props.initialPoll?.question || '')
 const questionTextareaRef = ref<HTMLTextAreaElement | null>(null)
-const responseType = ref<'texto' | 'imagen'>('texto')
+const responseType = ref<'texto' | 'imagen'>(
+  props.initialPoll?.responseType ||
+  (props.initialPoll?.options.some(o => !!o.imageUrl) ? 'imagen' : 'texto')
+)
 
 interface OptionItem {
   id: string
@@ -36,12 +41,42 @@ interface OptionItem {
 
 const options = ref<OptionItem[]>(
   props.initialPoll?.options && props.initialPoll.options.length >= 2
-    ? props.initialPoll.options.map((opt, idx) => ({ id: `opt-${idx + 1}`, text: opt.text }))
+    ? props.initialPoll.options.map((opt, idx) => ({
+        id: `opt-${idx + 1}`,
+        text: opt.text,
+        imageUrl: opt.imageUrl,
+      }))
     : [
         { id: 'opt-1', text: '' },
         { id: 'opt-2', text: '' },
       ]
 )
+
+// File inputs refs
+const fileInputRefs = ref<Record<string, HTMLInputElement | null>>({})
+
+const triggerOptionImagePicker = (optId: string) => {
+  fileInputRefs.value[optId]?.click()
+}
+
+const handleOptionImageChange = (opt: OptionItem, e: Event) => {
+  const target = e.target as HTMLInputElement
+  if (target.files && target.files[0]) {
+    const file = target.files[0]
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        opt.imageUrl = event.target.result as string
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+const removeOptionImage = (opt: OptionItem, e?: Event) => {
+  e?.stopPropagation()
+  opt.imageUrl = undefined
+}
 
 // Character limit
 const maxQuestionLength = 280
@@ -104,7 +139,7 @@ const removeOption = (index: number) => {
 
 // Validation
 const validOptionsCount = computed(() => {
-  return options.value.filter(o => o.text.trim().length > 0).length
+  return options.value.filter(o => o.text.trim().length > 0 || (responseType.value === 'imagen' && !!o.imageUrl)).length
 })
 
 const canComplete = computed(() => {
@@ -116,7 +151,9 @@ const validationMessage = computed(() => {
     return 'Escribe una pregunta para publicar.'
   }
   if (validOptionsCount.value < 2) {
-    return 'Agrega al menos 2 opciones con texto.'
+    return responseType.value === 'imagen'
+      ? 'Agrega al menos 2 opciones con imagen o texto.'
+      : 'Agrega al menos 2 opciones con texto.'
   }
   return null
 })
@@ -126,16 +163,18 @@ const handleSave = () => {
   if (!canComplete.value) return
 
   const filtered = options.value
-    .filter(o => o.text.trim().length > 0)
+    .filter(o => o.text.trim().length > 0 || (responseType.value === 'imagen' && !!o.imageUrl))
     .map((o, idx) => ({
       id: `poll-opt-${idx + 1}`,
       text: o.text.trim(),
+      imageUrl: responseType.value === 'imagen' ? o.imageUrl : undefined,
       votes: 0,
       percentage: 0,
     }))
 
   const pollData: PollData = {
     question: question.value.trim(),
+    responseType: responseType.value,
     totalVotes: 0,
     options: filtered,
   }
@@ -251,7 +290,8 @@ const handleSave = () => {
                 : 'bg-[#18131d] border border-[#2c1b2f] text-gray-300 hover:text-white'
             "
           >
-            <CheckCircle2 class="w-3.5 h-3.5 fill-current text-white" />
+            <SquareCheck v-if="responseType === 'texto'" class="w-3.5 h-3.5 text-white" />
+            <List v-else class="w-3.5 h-3.5 text-gray-400" />
             <span>Texto</span>
           </button>
 
@@ -259,14 +299,15 @@ const handleSave = () => {
           <button
             type="button"
             @click="responseType = 'imagen'"
-            class="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer"
+            class="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer"
             :class="
               responseType === 'imagen'
                 ? 'bg-[#f0254c] text-white shadow-md shadow-[#f0254c]/20'
                 : 'bg-[#18131d] border border-[#2c1b2f] text-gray-300 hover:text-white'
             "
           >
-            <ImageIcon class="w-3.5 h-3.5 text-gray-400" />
+            <SquareCheck v-if="responseType === 'imagen'" class="w-3.5 h-3.5 text-white" />
+            <ImageIcon v-else class="w-3.5 h-3.5 text-gray-400" />
             <span>Imagen</span>
           </button>
         </div>
@@ -287,10 +328,65 @@ const handleSave = () => {
           <div
             v-for="(opt, idx) in options"
             :key="opt.id"
-            class="flex items-center gap-3 p-3 rounded-2xl bg-[#141018] border border-[#2d1b2e] focus-within:border-[#f0254c]/70 transition-colors shadow-sm"
+            class="flex items-center gap-3.5 p-3 rounded-2xl bg-[#141018] border border-[#2d1b2e] focus-within:border-[#f0254c]/70 transition-colors shadow-sm"
           >
-            <!-- Crimson Circle with number -->
-            <div class="w-7 h-7 rounded-full bg-[#79141b] text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
+            <!-- Mode 1: Imagen mode - Square image picker box matching user screenshot -->
+            <div
+              v-if="responseType === 'imagen'"
+              class="relative w-20 h-20 rounded-2xl bg-[#221627] border border-[#3b2440] hover:border-[#f0254c]/70 transition-all flex items-center justify-center cursor-pointer shrink-0 overflow-hidden group select-none shadow-inner"
+              @click="triggerOptionImagePicker(opt.id)"
+              title="Seleccionar imagen"
+            >
+              <!-- Hidden input for file selection -->
+              <input
+                :ref="el => { fileInputRefs[opt.id] = el as HTMLInputElement }"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="e => handleOptionImageChange(opt, e)"
+              />
+
+              <!-- Preview of chosen image -->
+              <template v-if="opt.imageUrl">
+                <img
+                  :src="opt.imageUrl"
+                  alt="Opción"
+                  class="w-full h-full object-cover"
+                />
+                <!-- Hover controls -->
+                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                  <span class="p-1 rounded-md bg-black/80 text-white hover:text-[#f0254c] transition-colors" title="Cambiar imagen">
+                    <Camera class="w-3.5 h-3.5" />
+                  </span>
+                  <button
+                    type="button"
+                    @click="e => removeOptionImage(opt, e)"
+                    class="p-1 rounded-md bg-black/80 text-white hover:text-red-400 transition-colors"
+                    title="Quitar imagen"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </template>
+
+              <!-- Empty placeholder matching screenshot -->
+              <template v-else>
+                <!-- Central gallery icon -->
+                <ImageIcon class="w-8 h-8 text-gray-300 stroke-[1.5]" />
+
+                <!-- Bottom right Camera with + badge -->
+                <div class="absolute bottom-2 right-2 flex items-center text-gray-300">
+                  <Camera class="w-3.5 h-3.5" />
+                  <span class="text-[9px] font-black leading-none ml-0.5">+</span>
+                </div>
+              </template>
+            </div>
+
+            <!-- Mode 2: Texto mode - Crimson Circle with number -->
+            <div
+              v-else
+              class="w-7 h-7 rounded-full bg-[#79141b] text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm"
+            >
               {{ idx + 1 }}
             </div>
 
@@ -300,7 +396,7 @@ const handleSave = () => {
               type="text"
               :maxlength="maxOptionLength"
               :placeholder="`Respuesta ${idx + 1}`"
-              class="flex-1 bg-transparent text-sm text-white placeholder:text-gray-500 focus:outline-none"
+              class="flex-1 bg-transparent text-sm sm:text-base text-white placeholder:text-gray-500 focus:outline-none"
             />
 
             <!-- Trash button -->
@@ -308,7 +404,7 @@ const handleSave = () => {
               v-if="options.length > 2"
               type="button"
               @click="removeOption(idx)"
-              class="text-gray-500 hover:text-red-400 p-1 transition-colors cursor-pointer"
+              class="text-gray-500 hover:text-red-400 p-1.5 transition-colors cursor-pointer shrink-0"
               title="Eliminar opción"
             >
               <Trash2 class="w-4 h-4" />

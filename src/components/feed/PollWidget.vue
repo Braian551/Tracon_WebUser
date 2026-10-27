@@ -53,13 +53,21 @@ const handleVote = (optionId: string) => {
         ]"
       />
 
-      <!-- Option text -->
-      <span
-        class="relative z-10 text-sm font-semibold tracking-wide transition-colors"
-        :class="option.isLeading ? 'text-white' : 'text-gray-200'"
-      >
-        {{ option.text }}
-      </span>
+      <!-- Option text & optional image -->
+      <div class="relative z-10 flex items-center gap-3">
+        <div
+          v-if="option.imageUrl"
+          class="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/50"
+        >
+          <img :src="option.imageUrl" alt="Opción" class="w-full h-full object-cover" />
+        </div>
+        <span
+          class="text-sm font-semibold tracking-wide transition-colors"
+          :class="option.isLeading ? 'text-white' : 'text-gray-200'"
+        >
+          {{ option.text }}
+        </span>
+      </div>
 
       <!-- Percentage -->
       <span
