@@ -61,6 +61,10 @@ export interface Post {
   gameTag?: string
   locationTag?: string
   challengeTag?: string
+  challengeData?: {
+    title: string
+    rules?: string
+  }
   trakData?: {
     title: string
     game: string

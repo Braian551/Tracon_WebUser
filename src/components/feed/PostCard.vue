@@ -41,8 +41,8 @@ defineProps<Props>()
           </time>
         </header>
 
-        <!-- Tags Row (Game, Location, Challenge) -->
-        <div v-if="post.gameTag || post.locationTag || post.challengeTag" class="flex items-center gap-2 mt-1.5 flex-wrap">
+        <!-- Tags Row (Game, Location) -->
+        <div v-if="post.gameTag || post.locationTag" class="flex items-center gap-2 mt-1.5 flex-wrap">
           <span v-if="post.gameTag" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1e131d] border border-[#f0254c]/40 text-[#f0254c] text-xs font-medium">
             <Gamepad2 class="w-3 h-3" />
             {{ post.gameTag }}
@@ -51,14 +51,43 @@ defineProps<Props>()
             <MapPin class="w-3 h-3" />
             {{ post.locationTag }}
           </span>
-          <span v-if="post.challengeTag" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/40 border border-amber-500/30 text-amber-400 text-xs font-medium">
-            <Trophy class="w-3 h-3" />
-            {{ post.challengeTag }}
-          </span>
         </div>
 
-        <!-- Post Text -->
-        <p v-if="post.content || post.poll?.question" class="mt-1 text-[15px] text-gray-100 leading-relaxed break-words">
+        <!-- Challenge Highlight Card (Reto) -->
+        <div
+          v-if="post.challengeData || post.challengeTag"
+          class="mt-2.5 p-4 rounded-2xl bg-gradient-to-br from-[#261019] via-[#16121b] to-black border border-[#f0254c]/40 shadow-[0_0_20px_rgba(240,37,76,0.12)] space-y-3"
+        >
+          <!-- Badge Row -->
+          <div class="flex items-center justify-between">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f0254c]/20 border border-[#f0254c]/50 text-[#f0254c] text-xs font-bold uppercase tracking-wider shadow-sm">
+              <Trophy class="w-3.5 h-3.5 text-[#f0254c]" />
+              Reto
+            </span>
+            <span v-if="post.gameTag" class="text-xs text-gray-400 font-medium flex items-center gap-1">
+              <Gamepad2 class="w-3.5 h-3.5 text-[#f0254c]" />
+              {{ post.gameTag }}
+            </span>
+          </div>
+
+          <!-- Challenge Title -->
+          <h3 class="text-base sm:text-lg font-black text-white tracking-wide">
+            {{ post.challengeData?.title || post.challengeTag }}
+          </h3>
+
+          <!-- Rules Section -->
+          <div class="p-3 rounded-xl bg-black/60 border border-[#2d1b2e] space-y-1">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-[#f0254c]">
+              Reglas del reto
+            </span>
+            <p class="text-sm text-gray-200 leading-relaxed break-words whitespace-pre-line">
+              {{ post.challengeData?.rules || post.content }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Normal Post Text (only when not a challenge) -->
+        <p v-else-if="post.content || post.poll?.question" class="mt-1 text-[15px] text-gray-100 leading-relaxed break-words">
           {{ post.content || post.poll?.question }}
         </p>
 
