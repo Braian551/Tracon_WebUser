@@ -15,6 +15,7 @@ export interface PollOption {
 }
 
 export interface PollData {
+  question?: string
   options: PollOption[]
   totalVotes: number
   userVotedId?: string
@@ -36,6 +37,17 @@ export interface Post {
     title: string
     subtitle: string
     badgeText: string
+  }
+  mediaUrl?: string
+  gameTag?: string
+  locationTag?: string
+  challengeTag?: string
+  trakData?: {
+    title: string
+    game: string
+    category: string
+    record?: string
+    difficulty?: string
   }
   poll?: PollData
   stats: {

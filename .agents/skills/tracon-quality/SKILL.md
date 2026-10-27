@@ -14,6 +14,8 @@ Encuentra y corrige problemas reales. Una lista de hallazgos no sustituye la imp
 Determina por rutas y naturaleza del cambio:
 
 - Arquitectura, dependencias, clases acopladas, responsabilidades o patrones: `tracon-architecture`.
+- Código limpio, eliminación de código muerto e interactividad reemplazada: `tracon-clean-code`.
+- Transiciones fluidas de pantalla, sub-vistas y tabs: `tracon-view-transitions`.
 - `mobile/` o UI: `tracon-mobile`; añade `tracon-design` si hay impacto visual.
 - `backend/` o migraciones: `tracon-backend`.
 - `services/`, R2 o HLS: `tracon-media`.

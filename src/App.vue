@@ -9,6 +9,7 @@ import CommunityChatRoom from './components/communities/CommunityChatRoom.vue'
 import CommunityDetailSidebar from './components/communities/CommunityDetailSidebar.vue'
 import NotificationsView from './components/notifications/NotificationsView.vue'
 import CreateCommunityView from './components/communities/CreateCommunityView.vue'
+import CreatePostView from './components/create/CreatePostView.vue'
 import RequestGameModal from './components/communities/RequestGameModal.vue'
 import {
   navItemsData,
@@ -19,7 +20,7 @@ import {
   suggestedFeedCommunitiesData,
   communityDetailsData,
 } from './data/mockData'
-import type { CommunityFeedItem } from './types'
+import type { CommunityFeedItem, Post } from './types'
 import { Zap, MessageCircle, PlusCircle, PlayCircle, User } from 'lucide-vue-next'
 
 const navItems = ref(navItemsData)
@@ -61,21 +62,17 @@ const handleCommunityCreated = (newComm: CommunityFeedItem) => {
 }
 
 const handleNavigate = (id: string) => {
-  if (id === 'crear') {
-    activeNavId.value = 'chats'
-    chatSubTab.value = 'comunidades'
-    selectedCommunityId.value = null
-    showCommunitiesNotifications.value = false
-    isCreatingCommunity.value = true
-    return
-  }
-
   activeNavId.value = id
   isCreatingCommunity.value = false
   if (id !== 'chats') {
     selectedCommunityId.value = null
     showCommunitiesNotifications.value = false
   }
+}
+
+const handlePostPublished = (newPost: Post) => {
+  initialPosts.value.unshift(newPost)
+  activeNavId.value = 'inicio'
 }
 </script>
 
@@ -90,7 +87,7 @@ const handleNavigate = (id: string) => {
         user-name="Jeffrey Suárez"
         user-handle="SuarezCata655"
         @navigate="handleNavigate"
-        @open-publish-modal="() => {}"
+        @open-publish-modal="handleNavigate('crear')"
       />
 
       <!-- Dynamic Section: Chats / Communities or Main Feed with smooth transitions -->
@@ -157,6 +154,20 @@ const handleNavigate = (id: string) => {
                 />
               </template>
             </template>
+          </template>
+
+          <template v-else-if="activeNavId === 'crear'">
+            <!-- Middle Column: Create Post & Trak View -->
+            <CreatePostView
+              @close="handleNavigate('inicio')"
+              @published="handlePostPublished"
+            />
+
+            <!-- Right Column: Search & Communities Sidebar -->
+            <RightSidebar
+              :communities="suggestedCommunities"
+              @request-game="isGlobalRequestGameOpen = true"
+            />
           </template>
 
           <template v-else>
