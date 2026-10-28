@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import {
   X,
   Mic,
@@ -14,10 +14,13 @@ import {
   Square,
   ArrowLeft,
   ArrowRight,
+  ChevronRight,
+  Eye,
+  Upload,
+  Inbox,
   SlidersHorizontal,
   Music,
   Type,
-  Send,
   Gamepad2,
   Maximize2,
   Minimize2,
@@ -28,6 +31,8 @@ import {
   Bookmark,
 } from 'lucide-vue-next'
 import SearchInput from '../common/SearchInput.vue'
+import GameSelectorView from '../common/GameSelectorView.vue'
+import MentionPickerView from '../common/MentionPickerView.vue'
 import type { Post } from '../../types'
 
 interface Props {
@@ -78,7 +83,6 @@ const editorVideoRef = ref<HTMLVideoElement | null>(null)
 const isVideoPaused = ref(false)
 const currentTime = ref(0)
 const videoDuration = ref(3) // Default to 3s as seen in screenshot
-const isSoundMuted = ref(false)
 const playbackSpeed = ref<1 | 1.5 | 2>(1)
 const showSpeedToast = ref(false)
 
@@ -257,9 +261,53 @@ const isLandscape = computed(() => (videoAspectRatio.value ?? 0.6) > 1.05)
 
 // Metadata form state
 const trakTitle = ref('')
-const trakGame = ref('Specimen Zero')
-const trakCategory = ref<'Récord' | 'Speedrun' | 'Supervivencia' | 'Sin daño'>('Récord')
-const trakDifficulty = ref<'Pesadilla' | 'Difícil' | 'Normal' | 'Fácil'>('Pesadilla')
+const trakGame = ref('')
+const isPickingGame = ref(false)
+const isMentioning = ref(false)
+const metadataTextareaRef = ref<HTMLTextAreaElement | null>(null)
+const allowComments = ref(true)
+const isAiGenerated = ref(false)
+const showDraftToast = ref(false)
+
+const insertHashtag = () => {
+  if (!trakTitle.value.endsWith('#') && !trakTitle.value.endsWith('# ')) {
+    trakTitle.value = trakTitle.value ? `${trakTitle.value} #` : '#'
+  }
+}
+
+const openMentionPicker = () => {
+  isMentioning.value = true
+}
+
+const handleMentionSelected = (handle: string) => {
+  const mentionText = `@${handle} `
+  const el = metadataTextareaRef.value
+  if (el) {
+    const start = el.selectionStart ?? trakTitle.value.length
+    const end = el.selectionEnd ?? trakTitle.value.length
+    const before = trakTitle.value.substring(0, start)
+    const after = trakTitle.value.substring(end)
+    const prefix = (before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n')) ? ' ' : ''
+    trakTitle.value = before + prefix + mentionText + after
+    isMentioning.value = false
+    nextTick(() => {
+      el.focus()
+      const newPos = start + prefix.length + mentionText.length
+      el.setSelectionRange(newPos, newPos)
+    })
+  } else {
+    const prefix = (trakTitle.value.length > 0 && !trakTitle.value.endsWith(' ')) ? ' ' : ''
+    trakTitle.value = trakTitle.value ? `${trakTitle.value}${prefix}${mentionText}` : mentionText
+    isMentioning.value = false
+  }
+}
+
+const handleSaveDraft = () => {
+  showDraftToast.value = true
+  setTimeout(() => {
+    showDraftToast.value = false
+  }, 2000)
+}
 
 // Format helper
 const formatTime = (seconds: number) => {
@@ -476,6 +524,10 @@ const resetRecordedMedia = () => {
   isEditingTextModal.value = false
   isEditingSound.value = false
   isPickingMusic.value = false
+  isPickingGame.value = false
+  isMentioning.value = false
+  allowComments.value = true
+  isAiGenerated.value = false
   videoTextOverlay.value = ''
   selectedCoverTime.value = 0
   tempCoverTime.value = 0
@@ -511,8 +563,32 @@ const handleLoadedMetadata = () => {
     if (editorVideoRef.value.videoWidth && editorVideoRef.value.videoHeight) {
       videoAspectRatio.value = editorVideoRef.value.videoWidth / editorVideoRef.value.videoHeight
     }
+    // Always apply persisted volume and mute states when video is loaded / remounted
+    editorVideoRef.value.volume = originalAudioVolume.value / 100
+    editorVideoRef.value.muted = originalAudioVolume.value === 0
+    if (playbackSpeed.value !== 1) {
+      editorVideoRef.value.playbackRate = playbackSpeed.value
+    }
   }
 }
+
+// Watchers to keep video volume and element in sync across view navigation
+watch(originalAudioVolume, (newVol) => {
+  if (editorVideoRef.value) {
+    editorVideoRef.value.volume = newVol / 100
+    editorVideoRef.value.muted = newVol === 0
+  }
+})
+
+watch(editorVideoRef, (el) => {
+  if (el) {
+    el.volume = originalAudioVolume.value / 100
+    el.muted = originalAudioVolume.value === 0
+    if (playbackSpeed.value !== 1) {
+      el.playbackRate = playbackSpeed.value
+    }
+  }
+})
 
 // Editor tools actions
 const handleToggleSpeed = () => {
@@ -724,9 +800,9 @@ const handlePublishTrak = () => {
     mediaType: recordedMedia.value.type,
     trakData: {
       title: trakTitle.value.trim() || `Trak: ${captureSource.value === 'camera' ? 'Cámara frontal' : 'Gameplay / Pantalla'}`,
-      game: trakGame.value,
-      category: trakCategory.value,
-      difficulty: trakDifficulty.value,
+      game: trakGame.value || 'Sin juego relacionado',
+      category: 'Récord',
+      difficulty: 'Pesadilla',
       record: `${videoDuration.value}s`,
     },
     stats: {
@@ -777,10 +853,16 @@ onUnmounted(() => {
       @change="handleGalleryFile"
     />
 
-    <!-- ======================================================== -->
-    <!-- VIEW D: PORTADA SELECTOR (matches media_1793135252722_a0ff5ac1.png) -->
-    <!-- ======================================================== -->
-    <template v-if="recordedMedia && showCoverSelector">
+    <!-- Main View Transition Wrapper (matches tracon-view-transitions skill) -->
+    <Transition name="view-slide" mode="out-in">
+      <!-- ======================================================== -->
+      <!-- VIEW D: PORTADA SELECTOR (matches media_1793135252722_a0ff5ac1.png) -->
+      <!-- ======================================================== -->
+      <div
+        v-if="recordedMedia && showCoverSelector"
+        key="view-cover"
+        class="flex-1 flex flex-col h-full overflow-hidden select-none"
+      >
       <!-- 1. Top Bar: Cancelar | Portada | Guardar -->
       <header class="h-14 px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 bg-black/90 border-b border-[#1f212a]">
         <button
@@ -947,12 +1029,16 @@ onUnmounted(() => {
           </div>
         </div>
       </main>
-    </template>
+    </div>
 
     <!-- ======================================================== -->
     <!-- VIEW E: ELEGIR SONIDO (Dedicated full apartado matching GameSelectorView) -->
     <!-- ======================================================== -->
-    <template v-else-if="recordedMedia && isPickingMusic">
+    <div
+      v-else-if="recordedMedia && isPickingMusic"
+      key="view-music"
+      class="flex-1 flex flex-col h-full overflow-hidden select-none"
+    >
       <!-- 1. Top Bar: Back Arrow + Centered "Elegir sonido" -->
       <header class="px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between shrink-0 bg-black/95 backdrop-blur-md z-10 border-b border-[#1f212a]">
         <button
@@ -1116,12 +1202,16 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-    </template>
+    </div>
 
     <!-- ======================================================== -->
     <!-- VIEW A: EDITAR TRAK (exact match to media_1793134078724_174a141b.png) -->
     <!-- ======================================================== -->
-    <template v-else-if="recordedMedia && !showMetadataView">
+    <div
+      v-else-if="recordedMedia && !showMetadataView && !isPickingGame"
+      key="view-editor"
+      class="flex-1 flex flex-col h-full overflow-hidden select-none"
+    >
       <!-- 1. Top Bar: Back Arrow + Centered "Editar Trak" -->
       <header class="h-14 px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 bg-black/90">
         <button
@@ -1191,7 +1281,7 @@ onUnmounted(() => {
             disablepictureinpicture
             disableremoteplayback
             controlsList="nodownload nofullscreen noremoteplayback noplaybackrate"
-            :muted="isSoundMuted"
+            :muted="originalAudioVolume === 0"
             class="relative z-10 transition-all duration-200 pointer-events-none"
             :class="fitMode === 'contain' ? 'max-w-full max-h-full object-contain' : 'w-full h-full object-cover'"
             @timeupdate="handleTimeUpdate"
@@ -1282,233 +1372,240 @@ onUnmounted(() => {
           </Transition>
         </div>
 
-        <!-- ======================================================== -->
-        <!-- IF isEditingSound: Show Sonido Panel matching Image 1     -->
-        <!-- ======================================================== -->
-        <div v-if="isEditingSound" class="w-full max-w-[420px] px-2 pt-2 pb-4 space-y-4 animate-fade-in">
-          <!-- Header: Sonido (left) | Listo (right) -->
-          <div class="flex items-center justify-between">
-            <h3 class="text-base font-bold text-white tracking-wide">
-              Sonido
-            </h3>
-            <button
-              type="button"
-              @click="isEditingSound = false"
-              class="text-sm font-bold text-[#f0254c] hover:text-[#d9193f] transition-colors cursor-pointer"
-            >
-              Listo
-            </button>
-          </div>
-
-          <!-- Audio track card matching Image 1 -->
-          <div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#14121a] border border-white/10">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="w-9 h-9 rounded-full bg-[#f0254c]/15 border border-[#f0254c]/40 flex items-center justify-center shrink-0">
-                <Music class="w-4 h-4 text-[#f0254c]" />
-              </div>
-              <div class="min-w-0">
-                <p class="text-sm font-bold text-white truncate">
-                  {{ selectedMusicTrack ? selectedMusicTrack.title : 'Audio original' }}
-                </p>
-                <p class="text-xs text-gray-400 truncate">
-                  {{ selectedMusicTrack ? `${selectedMusicTrack.creator} · Sonido seleccionado` : 'El sonido del video se conserva.' }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Elegir button matching Image 1 -->
-            <button
-              type="button"
-              @click="isPickingMusic = true"
-              class="px-5 py-2.5 rounded-2xl bg-[#a5002b] hover:bg-[#c01538] text-white font-bold text-xs tracking-wide shrink-0 transition-all cursor-pointer shadow-md active:scale-95 whitespace-nowrap"
-            >
-              Elegir
-            </button>
-          </div>
-
-          <!-- Audio original volume slider matching Image 1 -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between text-xs font-semibold text-gray-200">
-              <span>Audio original</span>
-              <span class="font-mono font-bold text-xs text-[#f0254c]">{{ originalAudioVolume }}%</span>
-            </div>
-
-            <div class="relative flex items-center">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                :value="originalAudioVolume"
-                @input="handleOriginalVolumeChange"
-                class="volume-custom-slider w-full h-2 rounded-full appearance-none cursor-pointer outline-none"
-                :style="{
-                  background: `linear-gradient(to right, #f0254c 0%, #f0254c ${originalAudioVolume}%, #232530 ${originalAudioVolume}%, #232530 100%)`
-                }"
-              />
-            </div>
-          </div>
-
-          <!-- Additional volume slider if music track is selected -->
-          <div v-if="selectedMusicTrack" class="space-y-2 pt-2 border-t border-white/10">
-            <div class="flex items-center justify-between text-xs font-semibold text-gray-200">
-              <span class="truncate max-w-[220px]">
-                Sonido: {{ selectedMusicTrack.title }} <span class="text-gray-400 font-normal">({{ selectedMusicTrack.creator }})</span>
-              </span>
-              <span class="font-mono font-bold text-xs text-[#f0254c]">{{ musicAudioVolume }}%</span>
-            </div>
-
-            <div class="relative flex items-center">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                v-model.number="musicAudioVolume"
-                class="volume-custom-slider w-full h-2 rounded-full appearance-none cursor-pointer outline-none"
-                :style="{
-                  background: `linear-gradient(to right, #f0254c 0%, #f0254c ${musicAudioVolume}%, #232530 ${musicAudioVolume}%, #232530 100%)`
-                }"
-              />
-            </div>
-
-            <div class="flex justify-end pt-1">
+        <!-- Dynamic Panel: Sonido vs Timeline & Tools (Smooth transitions matching tracon-view-transitions) -->
+        <Transition name="panel-fade" mode="out-in">
+          <!-- IF isEditingSound: Show Sonido Panel matching Image 1 -->
+          <div
+            v-if="isEditingSound"
+            key="sound-panel"
+            class="w-full max-w-[420px] px-2 pt-2 pb-4 space-y-4"
+          >
+            <!-- Header: Sonido (left) | Listo (right) -->
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-bold text-white tracking-wide">
+                Sonido
+              </h3>
               <button
                 type="button"
-                @click="removeMusicTrack"
-                class="text-[11px] text-red-400 hover:text-red-300 font-semibold cursor-pointer"
+                @click="isEditingSound = false"
+                class="text-sm font-bold text-[#f0254c] hover:text-[#d9193f] transition-colors cursor-pointer"
               >
-                Quitar sonido añadido
+                Listo
               </button>
             </div>
-          </div>
-        </div>
 
-        <!-- ======================================================== -->
-        <!-- ELSE: Standard Timeline + Tools + Portada y datos button -->
-        <!-- ======================================================== -->
-        <template v-else>
-          <!-- Video Time Counter (Left aligned) -->
-          <div class="w-full max-w-[420px] px-1 mt-2 text-left">
-            <span class="text-xs sm:text-sm font-mono text-gray-300 font-semibold">
-              {{ formattedCurrentTime }} / {{ formattedVideoDuration }}
-            </span>
-          </div>
-
-          <!-- Filmstrip & Timeline Box matching screenshot (taller, full-length frame tiles, interactive scrubbing) -->
-          <div
-            ref="editorTimelineRef"
-            class="w-full max-w-[420px] mt-2 p-2.5 rounded-2xl border border-white/15 bg-[#121319] select-none cursor-pointer touch-none"
-            @pointerdown="startEditorScrub"
-            @pointermove="onEditorScrub"
-            @pointerup="stopEditorScrub"
-            @pointercancel="stopEditorScrub"
-          >
-            <!-- Time numbers row: 0:00 0:01 0:02 0:03 -->
-            <div class="flex items-center justify-between px-2 mb-1.5 text-[11px] font-mono text-gray-400">
-              <span v-for="marker in timeMarkers" :key="marker">{{ marker }}</span>
-            </div>
-
-            <!-- Filmstrip frames track (taller, full-length frame tiles) -->
-            <div class="relative h-16 sm:h-20 rounded-xl overflow-hidden bg-black/90 border border-white/10 flex items-center">
-              <!-- Simulated clip thumbnails frames -->
-              <div class="flex-1 h-full flex items-center justify-between overflow-hidden opacity-85 gap-1.5 px-1">
-                <div
-                  v-for="idx in (isLandscape ? 5 : 7)"
-                  :key="idx"
-                  class="h-full rounded-md bg-[#16121c] border border-white/10 relative overflow-hidden flex items-center justify-center shrink-0"
-                  :class="isLandscape ? 'flex-1' : 'aspect-[9/16]'"
-                >
-                  <video
-                    v-if="recordedMedia && recordedMedia.type === 'video'"
-                    :src="recordedMedia.url"
-                    class="w-full h-full object-cover opacity-85 pointer-events-none"
-                    muted
-                    playsinline
-                    preload="auto"
-                  />
-                  <img
-                    v-else-if="recordedMedia"
-                    :src="recordedMedia.url"
-                    class="w-full h-full object-cover opacity-85 pointer-events-none"
-                  />
+            <!-- Audio track card matching Image 1 -->
+            <div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#14121a] border border-white/10">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-full bg-[#f0254c]/15 border border-[#f0254c]/40 flex items-center justify-center shrink-0">
+                  <Music class="w-4 h-4 text-[#f0254c]" />
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-white truncate">
+                    {{ selectedMusicTrack ? selectedMusicTrack.title : 'Audio original' }}
+                  </p>
+                  <p class="text-xs text-gray-400 truncate">
+                    {{ selectedMusicTrack ? `${selectedMusicTrack.creator} · Sonido seleccionado` : 'El sonido del video se conserva.' }}
+                  </p>
                 </div>
               </div>
 
-              <!-- Red playhead indicator with top triangle and vertical needle -->
-              <div
-                class="absolute top-0 bottom-0 pointer-events-none -translate-x-1/2 z-20"
-                :style="{ left: `${playheadPositionPercent}%` }"
+              <!-- Elegir button matching Image 1 -->
+              <button
+                type="button"
+                @click="isPickingMusic = true"
+                class="px-5 py-2.5 rounded-2xl bg-[#a5002b] hover:bg-[#c01538] text-white font-bold text-xs tracking-wide shrink-0 transition-all cursor-pointer shadow-md active:scale-95 whitespace-nowrap"
               >
-                <div class="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[7px] border-t-[#f0254c] -translate-x-[4px]" />
-                <div class="w-[2px] h-full bg-[#f0254c] shadow-[0_0_8px_#f0254c]" />
+                Elegir
+              </button>
+            </div>
+
+            <!-- Audio original volume slider matching Image 1 -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-xs font-semibold text-gray-200">
+                <span>Audio original</span>
+                <span class="font-mono font-bold text-xs text-[#f0254c]">{{ originalAudioVolume }}%</span>
+              </div>
+
+              <div class="relative flex items-center">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  :value="originalAudioVolume"
+                  @input="handleOriginalVolumeChange"
+                  class="volume-custom-slider w-full h-2 rounded-full appearance-none cursor-pointer outline-none"
+                  :style="{
+                    background: `linear-gradient(to right, #f0254c 0%, #f0254c ${originalAudioVolume}%, #232530 ${originalAudioVolume}%, #232530 100%)`
+                  }"
+                />
+              </div>
+            </div>
+
+            <!-- Additional volume slider if music track is selected -->
+            <div v-if="selectedMusicTrack" class="space-y-2 pt-2 border-t border-white/10">
+              <div class="flex items-center justify-between text-xs font-semibold text-gray-200">
+                <span class="truncate max-w-[220px]">
+                  Sonido: {{ selectedMusicTrack.title }} <span class="text-gray-400 font-normal">({{ selectedMusicTrack.creator }})</span>
+                </span>
+                <span class="font-mono font-bold text-xs text-[#f0254c]">{{ musicAudioVolume }}%</span>
+              </div>
+
+              <div class="relative flex items-center">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  v-model.number="musicAudioVolume"
+                  class="volume-custom-slider w-full h-2 rounded-full appearance-none cursor-pointer outline-none"
+                  :style="{
+                    background: `linear-gradient(to right, #f0254c 0%, #f0254c ${musicAudioVolume}%, #232530 ${musicAudioVolume}%, #232530 100%)`
+                  }"
+                />
+              </div>
+
+              <div class="flex justify-end pt-1">
+                <button
+                  type="button"
+                  @click="removeMusicTrack"
+                  class="text-[11px] text-red-400 hover:text-red-300 font-semibold cursor-pointer"
+                >
+                  Quitar sonido añadido
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- 4 Editing Tool Pills Row (matching screenshot) -->
-          <div class="w-full max-w-[420px] grid grid-cols-4 gap-2 mt-3 mb-3">
-            <!-- 1. Editar -->
-            <button
-              type="button"
-              @click="handleToggleSpeed"
-              class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-              title="Cambiar velocidad"
-            >
-              <SlidersHorizontal class="w-3.5 h-3.5 text-[#f0254c]" />
-              <span>Editar</span>
-            </button>
+          <!-- ELSE: Standard Timeline + Tools + Portada y datos button -->
+          <div
+            v-else
+            key="tools-panel"
+            class="w-full max-w-[420px] flex flex-col items-center"
+          >
+            <!-- Video Time Counter (Left aligned) -->
+            <div class="w-full px-1 mt-2 text-left">
+              <span class="text-xs sm:text-sm font-mono text-gray-300 font-semibold">
+                {{ formattedCurrentTime }} / {{ formattedVideoDuration }}
+              </span>
+            </div>
 
-            <!-- 2. Sonido -->
-            <button
-              type="button"
-              @click="handleToggleSound"
-              class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-              :class="selectedMusicTrack || isEditingSound ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
-              title="Configurar sonido o música"
+            <!-- Filmstrip & Timeline Box matching screenshot (taller, full-length frame tiles, interactive scrubbing) -->
+            <div
+              ref="editorTimelineRef"
+              class="w-full mt-2 p-2.5 rounded-2xl border border-white/15 bg-[#121319] select-none cursor-pointer touch-none"
+              @pointerdown="startEditorScrub"
+              @pointermove="onEditorScrub"
+              @pointerup="stopEditorScrub"
+              @pointercancel="stopEditorScrub"
             >
-              <Music class="w-3.5 h-3.5 text-[#f0254c]" />
-              <span>Sonido</span>
-            </button>
+              <!-- Time numbers row: 0:00 0:01 0:02 0:03 -->
+              <div class="flex items-center justify-between px-2 mb-1.5 text-[11px] font-mono text-gray-400">
+                <span v-for="marker in timeMarkers" :key="marker">{{ marker }}</span>
+              </div>
 
-            <!-- 3. Texto -->
-            <button
-              type="button"
-              @click="handleToggleText"
-              class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-              :class="videoTextOverlay ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
-              title="Añadir o editar texto"
-            >
-              <Type class="w-3.5 h-3.5 text-[#f0254c]" />
-              <span>Texto</span>
-            </button>
+              <!-- Filmstrip frames track (taller, full-length frame tiles) -->
+              <div class="relative h-16 sm:h-20 rounded-xl overflow-hidden bg-black/90 border border-white/10 flex items-center">
+                <!-- Simulated clip thumbnails frames -->
+                <div class="flex-1 h-full flex items-center justify-between overflow-hidden opacity-85 gap-1.5 px-1">
+                  <div
+                    v-for="idx in (isLandscape ? 5 : 7)"
+                    :key="idx"
+                    class="h-full rounded-md bg-[#16121c] border border-white/10 relative overflow-hidden flex items-center justify-center shrink-0"
+                    :class="isLandscape ? 'flex-1' : 'aspect-[9/16]'"
+                  >
+                    <video
+                      v-if="recordedMedia && recordedMedia.type === 'video'"
+                      :src="recordedMedia.url"
+                      class="w-full h-full object-cover opacity-85 pointer-events-none"
+                      muted
+                      playsinline
+                      preload="auto"
+                    />
+                    <img
+                      v-else-if="recordedMedia"
+                      :src="recordedMedia.url"
+                      class="w-full h-full object-cover opacity-85 pointer-events-none"
+                    />
+                  </div>
+                </div>
 
-            <!-- 4. Portada -->
-            <button
-              type="button"
-              @click="handleSetCover"
-              class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-              :class="selectedCoverTime > 0 ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
-              title="Elegir frame de portada"
-            >
-              <ImageIcon class="w-3.5 h-3.5 text-[#f0254c]" />
-              <span>Portada</span>
-            </button>
+                <!-- Red playhead indicator with top triangle and vertical needle -->
+                <div
+                  class="absolute top-0 bottom-0 pointer-events-none -translate-x-1/2 z-20"
+                  :style="{ left: `${playheadPositionPercent}%` }"
+                >
+                  <div class="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[7px] border-t-[#f0254c] -translate-x-[4px]" />
+                  <div class="w-[2px] h-full bg-[#f0254c] shadow-[0_0_8px_#f0254c]" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 Editing Tool Pills Row (matching screenshot) -->
+            <div class="w-full grid grid-cols-4 gap-2 mt-3 mb-3">
+              <!-- 1. Editar -->
+              <button
+                type="button"
+                @click="handleToggleSpeed"
+                class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+                title="Cambiar velocidad"
+              >
+                <SlidersHorizontal class="w-3.5 h-3.5 text-[#f0254c]" />
+                <span>Editar</span>
+              </button>
+
+              <!-- 2. Sonido -->
+              <button
+                type="button"
+                @click="handleToggleSound"
+                class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+                :class="selectedMusicTrack || isEditingSound ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
+                title="Configurar sonido o música"
+              >
+                <Music class="w-3.5 h-3.5 text-[#f0254c]" />
+                <span>Sonido</span>
+              </button>
+
+              <!-- 3. Texto -->
+              <button
+                type="button"
+                @click="handleToggleText"
+                class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+                :class="videoTextOverlay ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
+                title="Añadir o editar texto"
+              >
+                <Type class="w-3.5 h-3.5 text-[#f0254c]" />
+                <span>Texto</span>
+              </button>
+
+              <!-- 4. Portada -->
+              <button
+                type="button"
+                @click="handleSetCover"
+                class="py-2 px-1 rounded-xl bg-[#15121a] border border-white/10 hover:border-[#f0254c]/50 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+                :class="selectedCoverTime > 0 ? 'border-[#f0254c] bg-[#f0254c]/15 text-white' : ''"
+                title="Elegir frame de portada"
+              >
+                <ImageIcon class="w-3.5 h-3.5 text-[#f0254c]" />
+                <span>Portada</span>
+              </button>
+            </div>
+
+            <!-- 5. Minimalist CTA Button: Portada y datos -->
+            <div class="w-full pt-1 pb-1">
+              <button
+                type="button"
+                @click="showMetadataView = true"
+                class="w-full py-2.5 sm:py-3 rounded-xl bg-[#f0254c] hover:bg-[#d9193f] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-[0_2px_14px_rgba(240,37,76,0.3)] transition-all duration-200 cursor-pointer active:scale-98"
+              >
+                <span>Portada y datos</span>
+                <ArrowRight class="w-4 h-4 text-white" />
+              </button>
+            </div>
           </div>
-
-          <!-- 5. Minimalist CTA Button: Portada y datos -->
-          <div class="w-full max-w-[420px] pt-1 pb-1">
-            <button
-              type="button"
-              @click="showMetadataView = true"
-              class="w-full py-2.5 sm:py-3 rounded-xl bg-[#f0254c] hover:bg-[#d9193f] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-[0_2px_14px_rgba(240,37,76,0.3)] transition-all duration-200 cursor-pointer active:scale-98"
-            >
-              <span>Portada y datos</span>
-              <ArrowRight class="w-4 h-4 text-white" />
-            </button>
-          </div>
-        </template>
+        </Transition>
 
         <!-- Text Customizer Modal (Color picker, styles, input) -->
-        <Transition name="fade">
+        <Transition name="modal-fade">
           <div
             v-if="isEditingTextModal"
             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
@@ -1627,138 +1724,285 @@ onUnmounted(() => {
 
 
       </main>
-    </template>
+    </div>
 
     <!-- ======================================================== -->
-    <!-- VIEW B: PORTADA Y DATOS (Final step before publishing) -->
+    <!-- VIEW GAME: SELECCIONAR JUEGO (GameSelectorView integration) -->
     <!-- ======================================================== -->
-    <template v-else-if="recordedMedia && showMetadataView">
-      <header class="h-14 px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 bg-black/90 border-b border-[#1f212a]">
+    <div
+      v-else-if="recordedMedia && isPickingGame"
+      key="view-game"
+      class="flex-1 flex flex-col h-full overflow-hidden select-none"
+    >
+      <GameSelectorView
+        :initialSelectedGame="trakGame"
+        @cancel="isPickingGame = false"
+        @select="(game) => { trakGame = game || ''; isPickingGame = false }"
+      />
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW MENTION: SELECCIONAR MENCIÓN (MentionPickerView integration) -->
+    <!-- ======================================================== -->
+    <div
+      v-else-if="recordedMedia && isMentioning"
+      key="view-mention"
+      class="flex-1 flex flex-col h-full overflow-hidden select-none"
+    >
+      <MentionPickerView
+        back-icon="chevron"
+        @cancel="isMentioning = false"
+        @select="handleMentionSelected"
+      />
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW B: PUBLICAR TRAK (exact match to media_1793160392985_4e4ad2d8.png) -->
+    <!-- ======================================================== -->
+    <div
+      v-else-if="recordedMedia && showMetadataView"
+      key="view-metadata"
+      class="flex-1 flex flex-col h-full overflow-hidden select-none"
+    >
+      <!-- 1. Header: Back Arrow + Centered "Publicar Trak" -->
+      <header class="h-14 px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 bg-black border-b border-white/5">
         <button
           type="button"
           @click="showMetadataView = false"
           class="p-2 -ml-2 rounded-full text-white hover:bg-white/10 transition-colors cursor-pointer"
           title="Volver a edición"
         >
-          <ArrowLeft class="w-6 h-6" />
+          <ArrowLeft class="w-6 h-6 stroke-[2.5]" />
         </button>
 
         <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">
-          Portada y datos
+          Publicar Trak
         </h2>
 
         <div class="w-8" />
       </header>
 
-      <main class="flex-1 px-5 py-4 min-h-0 overflow-y-auto no-scrollbar space-y-4 max-w-lg mx-auto w-full">
-        <!-- Media thumbnail + Title card -->
-        <div class="flex gap-4 p-3.5 rounded-2xl bg-[#141018] border border-[#2d1b2e]">
-          <div class="w-20 h-28 rounded-xl overflow-hidden bg-black shrink-0 border border-white/10 relative flex items-center justify-center">
-            <video
-              v-if="recordedMedia.type === 'video'"
-              ref="metadataThumbnailVideoRef"
-              :src="recordedMedia.url"
-              class="w-full h-full object-cover"
-              muted
-              playsinline
-              preload="auto"
-              @loadedmetadata="onMetadataThumbnailLoaded"
-            />
-            <img
-              v-else
-              :src="recordedMedia.url"
-              alt="Cover"
-              class="w-full h-full object-cover"
-            />
-            <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-mono text-white">
-              {{ formattedVideoDuration }}
-            </span>
+      <!-- 2. Form Content matching media_1793160392985_4e4ad2d8.png -->
+      <main class="flex-1 px-4 sm:px-6 py-4 min-h-0 overflow-y-auto no-scrollbar max-w-lg mx-auto w-full flex flex-col justify-between">
+        <div class="space-y-4">
+          <!-- Top Row: Thumbnail + Description textarea -->
+          <div class="flex gap-3 items-start">
+            <!-- Left Thumbnail (Video cover frame, click to change cover) -->
+            <div
+              @click="openCoverSelector"
+              class="w-24 h-36 rounded-2xl overflow-hidden bg-black border border-white/10 shrink-0 relative flex items-center justify-center cursor-pointer group shadow-md"
+              title="Cambiar frame de portada"
+            >
+              <video
+                v-if="recordedMedia.type === 'video'"
+                ref="metadataThumbnailVideoRef"
+                :src="recordedMedia.url"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                muted
+                playsinline
+                preload="auto"
+                @loadedmetadata="onMetadataThumbnailLoaded"
+              />
+              <img
+                v-else
+                :src="recordedMedia.url"
+                alt="Cover"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              />
+              <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+            </div>
+
+            <!-- Right: Textarea for Description -->
+            <div class="flex-1 min-w-0 bg-[#16121c] border border-white/10 rounded-2xl p-3 flex flex-col justify-between min-h-[144px]">
+              <textarea
+                ref="metadataTextareaRef"
+                v-model="trakTitle"
+                rows="4"
+                maxlength="5000"
+                placeholder="Describe la jugada, el reto o el momento..."
+                class="w-full bg-transparent text-sm text-white placeholder:text-gray-500 focus:outline-none resize-none flex-1 leading-relaxed"
+              />
+              <div class="text-right text-[11px] font-mono text-gray-500 pt-1">
+                {{ trakTitle.length }}/5000
+              </div>
+            </div>
           </div>
 
-          <div class="flex-1 min-w-0 flex flex-col justify-between">
-            <div>
-              <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">
-                Título o descripción
-              </label>
-              <textarea
-                v-model="trakTitle"
-                rows="3"
-                placeholder="Escribe de qué trata tu Trak..."
-                class="w-full p-2.5 rounded-xl bg-black/60 border border-[#232532] text-xs sm:text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#f0254c] resize-none"
-              />
+          <!-- Tags row: Hashtag & Mención -->
+          <div class="flex items-center gap-2 pt-1 pb-1">
+            <button
+              type="button"
+              @click="insertHashtag"
+              class="px-3.5 py-1.5 rounded-full bg-[#1e1526] hover:bg-[#2a1d37] border border-white/10 text-xs text-gray-300 hover:text-white font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+            >
+              <span class="text-gray-400 font-bold">#</span>
+              <span>Hashtag</span>
+            </button>
+
+            <button
+              type="button"
+              @click="openMentionPicker"
+              class="px-3.5 py-1.5 rounded-full bg-[#1e1526] hover:bg-[#2a1d37] border border-white/10 text-xs text-gray-300 hover:text-white font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+            >
+              <span class="text-gray-400 font-bold">@</span>
+              <span>Mención</span>
+            </button>
+          </div>
+
+          <!-- Thin divider line -->
+          <div class="border-b border-white/5 my-1" />
+
+          <!-- Options list matching screenshot -->
+          <div class="space-y-1">
+            <!-- 1. Juego relacionado (opcional) -->
+            <div
+              @click="isPickingGame = true"
+              class="flex items-center justify-between py-3 px-1 hover:bg-white/[0.03] rounded-xl transition-colors cursor-pointer group"
+            >
+              <div class="flex items-center gap-3.5 min-w-0">
+                <Gamepad2 class="w-5 h-5 text-[#f0254c] shrink-0" />
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-white">Juego relacionado (opcional)</p>
+                  <p class="text-xs text-gray-400 truncate">{{ trakGame || 'Sin juego relacionado' }}</p>
+                </div>
+              </div>
+              <ChevronRight class="w-4 h-4 text-gray-400 group-hover:text-white transition-colors shrink-0" />
+            </div>
+
+            <!-- 2. Audio -->
+            <div
+              @click="isPickingMusic = true"
+              class="flex items-center justify-between py-3 px-1 hover:bg-white/[0.03] rounded-xl transition-colors cursor-pointer group"
+            >
+              <div class="flex items-center gap-3.5 min-w-0">
+                <Music class="w-5 h-5 text-[#f0254c] shrink-0" />
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-white">Audio</p>
+                  <p class="text-xs text-gray-400 truncate">
+                    {{ selectedMusicTrack ? selectedMusicTrack.title : 'Audio original del Trak' }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Portada -->
+            <div
+              @click="openCoverSelector"
+              class="flex items-center justify-between py-3 px-1 hover:bg-white/[0.03] rounded-xl transition-colors cursor-pointer group"
+            >
+              <div class="flex items-center gap-3.5 min-w-0">
+                <ImageIcon class="w-5 h-5 text-[#f0254c] shrink-0" />
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-white">Portada</p>
+                  <p class="text-xs text-gray-400 truncate">
+                    {{ selectedCoverTime > 0 ? `Frame a los ${formatPrecisionTime(selectedCoverTime)}` : 'Poster automático' }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visibilidad box matching screenshot -->
+          <div class="pt-2">
+            <div class="relative rounded-2xl border border-white/15 bg-[#14121a]/80 px-4 py-3">
+              <span class="absolute -top-2.5 left-4 bg-black px-1.5 text-[11px] font-semibold text-gray-400">
+                Visibilidad
+              </span>
+              <div class="flex items-center gap-2.5 text-sm text-gray-200">
+                <Eye class="w-4 h-4 text-gray-400" />
+                <span class="font-medium">Todos (público)</span>
+              </div>
+            </div>
+            <p class="text-[11px] text-gray-500 mt-1.5 px-2">
+              Seguidores y privado aún no están disponibles.
+            </p>
+          </div>
+
+          <!-- Toggles matching screenshot -->
+          <div class="space-y-3 pt-1">
+            <!-- Toggle: Permitir comentarios -->
+            <div class="flex items-center justify-between py-2 px-1">
+              <span class="text-sm font-semibold text-white">Permitir comentarios</span>
+              <button
+                type="button"
+                @click="allowComments = !allowComments"
+                class="w-12 h-6 rounded-full transition-colors relative cursor-pointer focus:outline-none p-0.5 shrink-0"
+                :class="allowComments ? 'bg-[#f0254c]' : 'bg-[#262030]'"
+              >
+                <div
+                  class="w-5 h-5 rounded-full bg-white transition-transform shadow-md"
+                  :class="allowComments ? 'translate-x-6' : 'translate-x-0'"
+                />
+              </button>
+            </div>
+
+            <!-- Toggle: Contenido realista generado o alterado con IA -->
+            <div class="flex items-center justify-between py-2 px-1">
+              <div class="space-y-0.5 pr-4">
+                <p class="text-sm font-semibold text-white">Contenido realista generado o alterado con IA</p>
+                <p class="text-[11px] text-gray-400">Actívalo solo cuando aplique.</p>
+              </div>
+              <button
+                type="button"
+                @click="isAiGenerated = !isAiGenerated"
+                class="w-12 h-6 rounded-full transition-colors relative cursor-pointer focus:outline-none p-0.5 shrink-0"
+                :class="isAiGenerated ? 'bg-[#f0254c]' : 'bg-[#262030]'"
+              >
+                <div
+                  class="w-5 h-5 rounded-full bg-white transition-transform shadow-md"
+                  :class="isAiGenerated ? 'translate-x-6' : 'translate-x-0'"
+                />
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- Videojuego -->
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-            Videojuego
-          </label>
-          <div class="flex items-center gap-2.5 p-3 rounded-xl bg-[#141018] border border-[#2d1b2e]">
-            <Gamepad2 class="w-4 h-4 text-[#f0254c]" />
-            <input
-              v-model="trakGame"
-              type="text"
-              class="flex-1 bg-transparent text-sm text-white font-semibold focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <!-- Categoría -->
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-            Modalidad
-          </label>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <!-- Bottom Action Buttons: Borrador & Publicar -->
+        <div class="pt-6 pb-4">
+          <div class="flex items-center gap-3">
+            <!-- Borrador button -->
             <button
-              v-for="cat in (['Récord', 'Speedrun', 'Supervivencia', 'Sin daño'] as const)"
-              :key="cat"
               type="button"
-              @click="trakCategory = cat"
-              class="py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-center"
-              :class="trakCategory === cat ? 'bg-[#f0254c]/20 border-[#f0254c] text-white shadow-sm' : 'bg-[#141018] border-[#241a27] text-gray-400 hover:text-white'"
+              @click="handleSaveDraft"
+              class="px-6 py-3.5 rounded-2xl border border-white/20 bg-[#16121c] hover:bg-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shadow-sm shrink-0"
             >
-              {{ cat }}
+              <Inbox class="w-4 h-4 text-[#f0254c]" />
+              <span>Borrador</span>
+            </button>
+
+            <!-- Publicar button -->
+            <button
+              type="button"
+              @click="handlePublishTrak"
+              class="flex-1 py-3.5 rounded-2xl bg-[#f0254c] hover:bg-[#d9193f] text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#f0254c]/30 transition-all active:scale-95"
+            >
+              <Upload class="w-4 h-4 stroke-[2.5]" />
+              <span>Publicar</span>
             </button>
           </div>
         </div>
-
-        <!-- Dificultad -->
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-            Dificultad
-          </label>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <button
-              v-for="diff in (['Fácil', 'Normal', 'Difícil', 'Pesadilla'] as const)"
-              :key="diff"
-              type="button"
-              @click="trakDifficulty = diff"
-              class="py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-center"
-              :class="trakDifficulty === diff ? 'bg-[#79141b]/40 border-[#f0254c] text-white' : 'bg-[#141018] border-[#241a27] text-gray-400 hover:text-white'"
-            >
-              {{ diff }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Publicar Button -->
-        <button
-          type="button"
-          @click="handlePublishTrak"
-          class="w-full py-2.5 sm:py-3 mt-2 mb-2 rounded-xl bg-[#f0254c] hover:bg-[#d9193f] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-[0_2px_14px_rgba(240,37,76,0.3)] transition-all duration-200 cursor-pointer active:scale-98"
-        >
-          <Send class="w-4 h-4 text-white" />
-          <span>Publicar Trak</span>
-        </button>
       </main>
-    </template>
+
+      <!-- Draft Toast notification -->
+      <Transition name="fade">
+        <div
+          v-if="showDraftToast"
+          class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-[#1f212a] text-white text-xs font-semibold shadow-2xl border border-white/10 animate-fade-in flex items-center gap-2"
+        >
+          <Check class="w-4 h-4 text-emerald-400" />
+          <span>Borrador guardado con éxito</span>
+        </div>
+      </Transition>
+    </div>
 
     <!-- ======================================================== -->
     <!-- VIEW C: CAPTURE / RECORDING VIEWFINDER (initial camera / screen state) -->
     <!-- ======================================================== -->
-    <template v-else>
+    <div
+      v-else
+      key="view-recorder"
+      class="flex-1 flex flex-col h-full overflow-hidden select-none"
+    >
       <!-- 1. Top Controls Bar -->
       <header class="h-16 px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
         <!-- Close button (X) -->
@@ -1954,14 +2198,14 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <!-- Bottom Navigation: PUBLICACIÓN | TRAK (matching screenshot) -->
+        <!-- Bottom Navigation: PUBLICACIONES | TRAK (matching screenshot) -->
         <nav class="relative flex items-center justify-around border-t border-white/10 py-3.5 select-none bg-black">
           <button
             type="button"
             @click="emit('switch-tab', 'publicacion')"
             class="relative text-xs sm:text-sm font-bold tracking-wider uppercase text-gray-400 hover:text-white transition-colors cursor-pointer"
           >
-            Publicación
+            Publicaciones
           </button>
 
           <button
@@ -1973,11 +2217,95 @@ onUnmounted(() => {
           </button>
         </nav>
       </footer>
-    </template>
+    </div>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
+/* ========================================================================== */
+/* Canonical View Transitions matching tracon-view-transitions skill         */
+/* ========================================================================== */
+
+/* 1. Transición entre apartados y pantallas completas */
+.view-slide-enter-active,
+.view-slide-leave-active {
+  transition: opacity 240ms cubic-bezier(0.23, 1, 0.32, 1), transform 240ms cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: opacity, transform;
+}
+
+.view-slide-enter-from {
+  opacity: 0;
+  transform: translateY(12px) scale(0.995);
+}
+
+.view-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.995);
+}
+
+/* 2. Transición entre paneles y sub-vistas internas (ej. Sonido vs Herramientas) */
+.panel-fade-enter-active,
+.panel-fade-leave-active {
+  transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1), transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: opacity, transform;
+}
+
+.panel-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.panel-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* 3. Transición para pestañas */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1), transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: opacity, transform;
+}
+
+.tab-fade-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.tab-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* 4. Modales y diálogos flotantes */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1), transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: opacity, transform;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+/* Accesibilidad obligatoria */
+@media (prefers-reduced-motion: reduce) {
+  .view-slide-enter-active,
+  .view-slide-leave-active,
+  .panel-fade-enter-active,
+  .panel-fade-leave-active,
+  .tab-fade-enter-active,
+  .tab-fade-leave-active,
+  .modal-fade-enter-active,
+  .modal-fade-leave-active {
+    transition: opacity 120ms ease !important;
+    transform: none !important;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

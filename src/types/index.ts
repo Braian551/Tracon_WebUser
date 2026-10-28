@@ -84,6 +84,54 @@ export interface Post {
   }
 }
 
+export interface TrakComment {
+  id: string
+  author: {
+    name: string
+    handle: string
+    avatarUrl?: string
+    avatarType?: string
+  }
+  content: string
+  timeAgo: string
+  likes: number
+  isLiked?: boolean
+}
+
+export interface TrakItem {
+  id: string
+  author: {
+    name: string
+    handle: string
+    avatarUrl?: string
+    avatarType?: 'red_user' | 'purple_mask' | 'minecraft_pink' | 'gamer_blue' | 'horror_meat' | 'tracon'
+    isVerified?: boolean
+    isTraconOfficial?: boolean
+    isOwner?: boolean
+    followingStatus?: 'siguiendo' | 'seguir-tambien' | null
+  }
+  timeAgo: string
+  title: string
+  caption: string
+  game: string
+  mediaUrl?: string
+  mediaType?: 'video' | 'image'
+  aspectRatio?: number
+  stats: {
+    impulses: number
+    comments: number
+    likes: number
+    shares: number
+    saves: number
+    isImpulsed?: boolean
+    isLiked?: boolean
+    isSaved?: boolean
+  }
+  soundTitle?: string
+  soundAuthor?: string
+  commentsList?: TrakComment[]
+}
+
 export interface SuggestedCommunity {
   id: string
   name: string

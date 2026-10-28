@@ -8,6 +8,7 @@ import type {
   NotificationItem,
   MentionUser,
   GameItem,
+  TrakItem,
 } from '../types'
 
 export const navItemsData: NavItem[] = [
@@ -513,6 +514,132 @@ export const availableGamesCatalog: GameItem[] = [
   { id: 'resident-evil-4', name: 'Resident Evil 4', genre: 'Survival Horror' },
   { id: 'phasmophobia', name: 'Phasmophobia', genre: 'Investigación paranormal' },
   { id: 'lethal-company', name: 'Lethal Company', genre: 'Cooperativo / Terror' },
+]
+
+export const initialTraksData: TrakItem[] = [
+  {
+    id: 'trak-lordderiam-lol',
+    author: {
+      name: 'Lord Deriam',
+      handle: 'lordderiam',
+      avatarType: 'red_user',
+      isOwner: true,
+    },
+    timeAgo: 'hace 2h',
+    title: 'Etapas de jugar LOL',
+    caption: 'Etapas ksjajajaj',
+    game: 'League Of Legends',
+    mediaType: 'image',
+    stats: {
+      impulses: 1,
+      comments: 0,
+      likes: 2,
+      shares: 0,
+      saves: 0,
+      isImpulsed: true,
+      isLiked: true,
+      isSaved: false,
+    },
+    soundTitle: 'Audio original',
+    soundAuthor: 'lordderiam',
+    commentsList: [],
+  },
+  {
+    id: 'trak-specimen-zero',
+    author: {
+      name: 'Braian Andrés Oquendo Durango',
+      handle: 'braianoquendurango',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces',
+      isOwner: false,
+      followingStatus: 'siguiendo',
+    },
+    timeAgo: 'hace 5h',
+    title: 'Escape en Dificultad Pesadilla',
+    caption: 'Escape perfecto en dificultad Pesadilla sin ser detectado 😱 ¿Quién supera los 3 minutos?',
+    game: 'Specimen Zero',
+    mediaType: 'video',
+    mediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    stats: {
+      impulses: 24,
+      comments: 8,
+      likes: 89,
+      shares: 12,
+      saves: 34,
+      isImpulsed: false,
+      isLiked: false,
+      isSaved: false,
+    },
+    soundTitle: 'Terror Ambience',
+    soundAuthor: 'braianoquendurango',
+    commentsList: [
+      {
+        id: 'c-1',
+        author: {
+          name: 'Sparky67',
+          handle: 'dusty',
+          avatarType: 'purple_mask',
+        },
+        content: '¡Qué locura de partida hermano! Esa última puerta casi no se abre jajaja 🔥',
+        timeAgo: 'hace 3h',
+        likes: 5,
+        isLiked: false,
+      },
+      {
+        id: 'c-2',
+        author: {
+          name: 'Héctor Maya',
+          handle: 'hmaya10',
+          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
+        },
+        content: 'Pasá la configuración de sensibilidad que tenés para apuntar así',
+        timeAgo: 'hace 1h',
+        likes: 2,
+        isLiked: false,
+      },
+    ],
+  },
+  {
+    id: 'trak-brawl-stars',
+    author: {
+      name: 'Sparky67',
+      handle: 'dusty',
+      avatarType: 'purple_mask',
+      isOwner: false,
+      followingStatus: 'siguiendo',
+    },
+    timeAgo: 'hace 1d',
+    title: 'Clutch 1v3 en Balón Brawl',
+    caption: 'Triple kill en los últimos 5 segundos de la partida con Mortis 🔥 #clutch #brawlstars',
+    game: 'Brawl Stars',
+    mediaType: 'video',
+    mediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    stats: {
+      impulses: 56,
+      comments: 15,
+      likes: 142,
+      shares: 20,
+      saves: 19,
+      isImpulsed: true,
+      isLiked: true,
+      isSaved: true,
+    },
+    soundTitle: 'Gaming Phonk Drill',
+    soundAuthor: 'dusty',
+    commentsList: [
+      {
+        id: 'c-3',
+        author: {
+          name: 'Luis',
+          handle: 'luis8288gg',
+          avatarUrl: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100&h=100&fit=crop&crop=faces',
+        },
+        content: 'GOD total ese trickshot al final 💯',
+        timeAgo: 'hace 20h',
+        likes: 12,
+        isLiked: true,
+      },
+    ],
+  },
 ]
 
 
