@@ -1,11 +1,24 @@
+PUBLICACIONES:
+
+Hacer el radar funcional
+
+SOLICITAR JUEGO AL CATALOGO:
+
+Al darle click a agregar imagen que me deje poner una imagen pero que sean solo imagenes
+
 CHATS:
 
-1- Radar de juego
+Radar de juego
+al hacerle click al nombre del usuario en chats poder ver el perfil de cada persona
 
-2- iconos de: mas(comunidad) no esta funcional, este es para mandar imágenes a la comunidad.
+CREAR: 
 
-3- al hacerle click al nombre del usuario en chats y en comunidades podre ver el perfil de cada persona/comunidad
+apartado de ubicación
+editar trak
+portada y datos
 
 GENERAL:
 
-1- Aplicar shimmer/skeleton para la carga de contenido, esto en todos los apartados de la pagina, ya que es para la carga del contenido
+Aplicar shimmer/skeleton para la carga de contenido, esto en todos los apartados de la pagina, ya que es para la carga del contenido
+Animación del boton cuando das TrakUp
+comentar en publicaciones

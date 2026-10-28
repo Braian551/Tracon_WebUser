@@ -10,21 +10,24 @@ import CommunityDetailSidebar from './components/communities/CommunityDetailSide
 import NotificationsView from './components/notifications/NotificationsView.vue'
 import CreateCommunityView from './components/communities/CreateCommunityView.vue'
 import CreatePostView from './components/create/CreatePostView.vue'
+import TraksView from './components/traks/TraksView.vue'
 import RequestGameModal from './components/communities/RequestGameModal.vue'
 import {
   navItemsData,
   initialPostsData,
+  initialTraksData,
   suggestedCommunitiesData,
   conversationsData,
   myCommunitiesData,
   suggestedFeedCommunitiesData,
   communityDetailsData,
 } from './data/mockData'
-import type { CommunityFeedItem, Post } from './types'
+import type { CommunityFeedItem, Post, TrakItem } from './types'
 import { Zap, MessageCircle, PlusCircle, PlayCircle, User } from 'lucide-vue-next'
 
 const navItems = ref(navItemsData)
 const initialPosts = ref(initialPostsData)
+const traksList = ref<TrakItem[]>([...initialTraksData])
 const suggestedCommunities = ref(suggestedCommunitiesData)
 const myCommunities = ref(myCommunitiesData)
 const suggestedFeedCommunities = ref(suggestedFeedCommunitiesData)
@@ -71,8 +74,40 @@ const handleNavigate = (id: string) => {
 }
 
 const handlePostPublished = (newPost: Post) => {
-  initialPosts.value.unshift(newPost)
-  activeNavId.value = 'inicio'
+  if (newPost.trakData) {
+    const newTrak: TrakItem = {
+      id: newPost.id,
+      author: {
+        name: newPost.author.name,
+        handle: newPost.author.handle,
+        isOwner: true,
+      },
+      timeAgo: 'ahora',
+      title: newPost.trakData.title,
+      caption: newPost.content,
+      game: newPost.trakData.game,
+      mediaUrl: newPost.mediaUrl,
+      mediaType: newPost.mediaType || 'video',
+      stats: {
+        impulses: 0,
+        comments: 0,
+        likes: 0,
+        shares: 0,
+        saves: 0,
+        isImpulsed: false,
+        isLiked: false,
+        isSaved: false,
+      },
+      soundTitle: 'Audio original',
+      soundAuthor: newPost.author.handle,
+      commentsList: [],
+    }
+    traksList.value.unshift(newTrak)
+    activeNavId.value = 'traks'
+  } else {
+    initialPosts.value.unshift(newPost)
+    activeNavId.value = 'inicio'
+  }
 }
 </script>
 
@@ -170,6 +205,21 @@ const handlePostPublished = (newPost: Post) => {
             />
           </template>
 
+          <template v-else-if="activeNavId === 'traks'">
+            <!-- Middle Column: Traks Feed (matching screenshot) -->
+            <TraksView
+              :traks="traksList"
+              current-user-name="Jeffrey Suárez"
+              current-user-handle="SuarezCata655"
+            />
+
+            <!-- Right Column: Search & Communities Sidebar -->
+            <RightSidebar
+              :communities="suggestedCommunities"
+              @request-game="isGlobalRequestGameOpen = true"
+            />
+          </template>
+
           <template v-else>
             <!-- Middle Column: Main Feed -->
             <MainFeed :initial-posts="initialPosts" />
@@ -192,53 +242,68 @@ const handlePostPublished = (newPost: Post) => {
       @close="isGlobalRequestGameOpen = false"
     />
 
-    <!-- Mobile Bottom Navigation Bar (< 768px) -->
+    <!-- Mobile Bottom Navigation Bar (< 768px matching screenshot) -->
     <nav
-      class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-md border-t border-[#1f212a] flex items-center justify-around py-2.5 px-4"
+      class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-t border-[#1f212a] flex items-center justify-around py-2 px-3"
     >
+      <!-- 1. Inicio -->
       <button
         @click="activeNavId = 'inicio'"
         type="button"
-        class="p-2 transition-colors"
-        :class="activeNavId === 'inicio' ? 'text-[#f0254c]' : 'text-gray-400'"
+        class="flex flex-col items-center gap-1 transition-all cursor-pointer"
+        :class="activeNavId === 'inicio' ? 'text-white' : 'text-gray-400 hover:text-white'"
       >
-        <Zap class="w-6 h-6 fill-current" />
+        <Zap class="w-5 h-5" :class="{ 'fill-[#f0254c] text-[#f0254c]': activeNavId === 'inicio' }" />
+        <span class="text-[10px] font-semibold">Inicio</span>
       </button>
 
+      <!-- 2. Chats -->
       <button
         @click="activeNavId = 'chats'"
         type="button"
-        class="p-2 transition-colors"
-        :class="activeNavId === 'chats' ? 'text-white' : 'text-gray-400'"
+        class="flex flex-col items-center gap-1 transition-all cursor-pointer"
+        :class="activeNavId === 'chats' ? 'text-white' : 'text-gray-400 hover:text-white'"
       >
-        <MessageCircle class="w-6 h-6" />
+        <MessageCircle class="w-5 h-5" :class="{ 'text-[#f0254c]': activeNavId === 'chats' }" />
+        <span class="text-[10px] font-semibold">Chats</span>
       </button>
 
+      <!-- 3. Crear -->
       <button
         @click="activeNavId = 'crear'"
         type="button"
-        class="p-2 transition-colors"
-        :class="activeNavId === 'crear' ? 'text-white' : 'text-gray-400'"
+        class="flex flex-col items-center gap-1 transition-all cursor-pointer"
+        :class="activeNavId === 'crear' ? 'text-white' : 'text-gray-400 hover:text-white'"
       >
-        <PlusCircle class="w-6 h-6 text-[#f0254c]" />
+        <PlusCircle class="w-5 h-5 text-[#f0254c]" />
+        <span class="text-[10px] font-semibold">Crear</span>
       </button>
 
+      <!-- 4. Traks (Red capsule pill in screenshot when active) -->
       <button
         @click="activeNavId = 'traks'"
         type="button"
-        class="p-2 transition-colors"
-        :class="activeNavId === 'traks' ? 'text-white' : 'text-gray-400'"
+        class="flex flex-col items-center gap-0.5 transition-all cursor-pointer"
+        :class="activeNavId === 'traks' ? 'text-white' : 'text-gray-400 hover:text-white'"
       >
-        <PlayCircle class="w-6 h-6" />
+        <div
+          class="flex items-center justify-center transition-all"
+          :class="activeNavId === 'traks' ? 'bg-[#7a0d1f] px-4 py-1 rounded-full text-white shadow-sm' : 'p-1'"
+        >
+          <PlayCircle class="w-5 h-5 fill-current" />
+        </div>
+        <span class="text-[10px] font-semibold">Traks</span>
       </button>
 
+      <!-- 5. Perfil -->
       <button
         @click="activeNavId = 'perfil'"
         type="button"
-        class="p-2 transition-colors"
-        :class="activeNavId === 'perfil' ? 'text-white' : 'text-gray-400'"
+        class="flex flex-col items-center gap-1 transition-all cursor-pointer"
+        :class="activeNavId === 'perfil' ? 'text-white' : 'text-gray-400 hover:text-white'"
       >
-        <User class="w-6 h-6" />
+        <User class="w-5 h-5" :class="{ 'text-[#f0254c]': activeNavId === 'perfil' }" />
+        <span class="text-[10px] font-semibold">Perfil</span>
       </button>
     </nav>
   </div>

@@ -338,14 +338,14 @@ const handleTrakPublished = (post: Post) => {
         </h2>
       </div>
 
-      <!-- Tabs Bar (Publicación vs Trak) minimalist like FeedTabs in inicio -->
+      <!-- Tabs Bar (Publicaciones vs Trak) minimalist like FeedTabs in inicio -->
       <nav class="relative flex items-center justify-around border-t border-[#15161e] select-none">
         <button
           type="button"
           @click="activeTab = 'publicacion'"
           class="relative flex-1 py-3.5 text-center text-sm font-semibold transition-colors duration-200 cursor-pointer text-white"
         >
-          <span>Publicación</span>
+          <span>Publicaciones</span>
         </button>
 
         <button
