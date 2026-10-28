@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Check, ImageIcon, PlusSquare } from 'lucide-vue-next'
+import { Check, ImageIcon, PlusSquare, Trash2, RefreshCw } from 'lucide-vue-next'
 
 interface Props {
   isOpen: boolean
@@ -16,7 +16,7 @@ withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'submit', data: { name: string; website: string; reason: string }): void
+  (e: 'submit', data: { name: string; website: string; reason: string; image?: string | null }): void
 }>()
 
 const form = ref({
@@ -24,6 +24,35 @@ const form = ref({
   website: '',
   reason: '',
 })
+
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const gameImageUrl = ref<string | null>(null)
+
+const triggerImageUpload = () => {
+  fileInputRef.value?.click()
+}
+
+const handleFileChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  // Enforce strictly images only
+  if (!file.type.startsWith('image/')) {
+    alert('Por favor selecciona únicamente un archivo de imagen (PNG, JPG, WEBP, etc.).')
+    if (fileInputRef.value) fileInputRef.value.value = ''
+    return
+  }
+
+  gameImageUrl.value = URL.createObjectURL(file)
+}
+
+const removeImage = () => {
+  gameImageUrl.value = null
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+}
 
 const handleClose = () => {
   emit('close')
@@ -34,9 +63,11 @@ const handleSubmit = () => {
     name: form.value.name.trim(),
     website: form.value.website.trim(),
     reason: form.value.reason.trim(),
+    image: gameImageUrl.value,
   })
   // Reset form
   form.value = { name: '', website: '', reason: '' }
+  removeImage()
   emit('close')
 }
 </script>
@@ -72,10 +103,51 @@ const handleSubmit = () => {
 
           <!-- Form Fields -->
           <div class="space-y-4 my-5">
+            <!-- Hidden Native File Input: Strictly Images Only -->
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="handleFileChange"
+            />
+
+            <!-- Image Preview Box or Add Image Button -->
+            <div
+              v-if="gameImageUrl"
+              class="relative w-full h-36 rounded-2xl overflow-hidden border border-[#f0254c]/50 bg-black/60 shadow-lg group"
+            >
+              <img
+                :src="gameImageUrl"
+                alt="Imagen del juego"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                <button
+                  type="button"
+                  @click="triggerImageUpload"
+                  class="px-3 py-1.5 rounded-xl bg-black/80 hover:bg-black text-white text-xs font-semibold backdrop-blur-md border border-white/20 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <RefreshCw class="w-3.5 h-3.5" />
+                  <span>Cambiar</span>
+                </button>
+                <button
+                  type="button"
+                  @click="removeImage"
+                  class="p-2 rounded-xl bg-red-600/80 hover:bg-red-600 text-white backdrop-blur-md transition-all cursor-pointer shadow-md"
+                  title="Eliminar imagen"
+                >
+                  <Trash2 class="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
             <!-- Add Game Image Button / Box -->
             <button
+              v-else
               type="button"
-              class="w-full h-12 rounded-2xl border border-dashed border-[#f0254c]/40 bg-[#70081a]/10 hover:bg-[#70081a]/20 transition-colors flex items-center justify-center gap-2 text-xs font-semibold text-[#f0254c] cursor-pointer"
+              @click="triggerImageUpload"
+              class="w-full h-14 rounded-2xl border border-dashed border-[#f0254c]/40 bg-[#70081a]/10 hover:bg-[#70081a]/20 transition-colors flex items-center justify-center gap-2 text-xs font-semibold text-[#f0254c] cursor-pointer active:scale-[0.99]"
             >
               <ImageIcon class="w-4 h-4" />
               <span>Añadir imagen del juego</span>
@@ -143,7 +215,7 @@ const handleSubmit = () => {
               class="px-7 py-3 rounded-2xl bg-[#f0254c] hover:bg-[#d9193f] active:scale-[0.99] text-white font-semibold text-sm tracking-wide shadow-lg shadow-[#f0254c]/25 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Check class="w-4 h-4 stroke-[3]" />
-              <span>Aceptar</span>
+              <span>Solicitar</span>
             </button>
           </div>
         </div>
